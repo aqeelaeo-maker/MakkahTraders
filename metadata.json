@@ -1,0 +1,6 @@
+{
+  "name": "TaxFlow ERP",
+  "description": "Sales Tax Invoice Management System with Firebase, React, PDF Generation, and Barcode Support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

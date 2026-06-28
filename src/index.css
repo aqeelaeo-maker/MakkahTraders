@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@media print {
+  * {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  body, html, #root {
+    background: white !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-container, .print-container * {
+    visibility: visible;
+  }
+  .print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none !important;
+  }
+}
+
+@media screen {
+  .screen-only-hide {
+    position: fixed !important;
+    top: -10000px !important;
+    left: -10000px !important;
+  }
+}
