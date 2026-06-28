@@ -30,6 +30,10 @@ export default function InvoiceCreate() {
   const [discount, setDiscount] = useState(0);
   const [status, setStatus] = useState<'Draft' | 'Paid' | 'Unpaid'>('Unpaid');
   const [date, setDate] = useState<number>(Date.now());
+  const [customerInstCodeSearch, setCustomerInstCodeSearch] = useState('');
+  const [customerInstCodeSearchInput, setCustomerInstCodeSearchInput] = useState('');
+  const [productSearchInputs, setProductSearchInputs] = useState<{ [key: number]: string }>({});
+  const [productSearchApplied, setProductSearchApplied] = useState<{ [key: number]: string }>({});
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -244,6 +248,13 @@ export default function InvoiceCreate() {
   };
 
   const selectedCustomerDetails = customers.find(c => c.id === selectedCustomerId);
+  
+  const filteredCustomers = customers.filter(c => 
+    !customerInstCodeSearch || 
+    String(c.institutionCode || '').toLowerCase().includes(customerInstCodeSearch.toLowerCase()) ||
+    String(c.emisCode || '').toLowerCase().includes(customerInstCodeSearch.toLowerCase()) ||
+    String(c.healthUnitCode || '').toLowerCase().includes(customerInstCodeSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -283,6 +294,71 @@ export default function InvoiceCreate() {
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
             <h3 className="text-xs font-bold uppercase text-slate-400 tracking-widest border-b border-slate-100 pb-2">Document Details</h3>
             <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">Search Customer by Code</label>
+              <div className="flex gap-2 mb-3">
+                <input 
+                  type="text" 
+                  placeholder="Enter EMIS/Inst/Health Unit Code"
+                  className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  value={customerInstCodeSearchInput}
+                  onChange={(e) => setCustomerInstCodeSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = customerInstCodeSearchInput.trim();
+                      setCustomerInstCodeSearch(val);
+                      if (val.length > 0) {
+                        const matches = customers.filter(c => 
+                          String(c.institutionCode || '').toLowerCase().includes(val.toLowerCase()) ||
+                          String(c.emisCode || '').toLowerCase().includes(val.toLowerCase()) ||
+                          String(c.healthUnitCode || '').toLowerCase().includes(val.toLowerCase())
+                        );
+                        if (matches.length === 1) {
+                          setSelectedCustomerId(matches[0].id);
+                        } else {
+                          const exactMatch = customers.find(c => 
+                            String(c.institutionCode || '').toLowerCase() === val.toLowerCase() ||
+                            String(c.emisCode || '').toLowerCase() === val.toLowerCase() ||
+                            String(c.healthUnitCode || '').toLowerCase() === val.toLowerCase()
+                          );
+                          if (exactMatch) {
+                            setSelectedCustomerId(exactMatch.id);
+                          }
+                        }
+                      }
+                    }
+                  }}
+                />
+                <button 
+                  type="button"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors"
+                  onClick={() => {
+                    const val = customerInstCodeSearchInput.trim();
+                    setCustomerInstCodeSearch(val);
+                    if (val.length > 0) {
+                      const matches = customers.filter(c => 
+                        String(c.institutionCode || '').toLowerCase().includes(val.toLowerCase()) ||
+                        String(c.emisCode || '').toLowerCase().includes(val.toLowerCase()) ||
+                        String(c.healthUnitCode || '').toLowerCase().includes(val.toLowerCase())
+                      );
+                      if (matches.length === 1) {
+                        setSelectedCustomerId(matches[0].id);
+                      } else {
+                        const exactMatch = customers.find(c => 
+                          String(c.institutionCode || '').toLowerCase() === val.toLowerCase() ||
+                          String(c.emisCode || '').toLowerCase() === val.toLowerCase() ||
+                          String(c.healthUnitCode || '').toLowerCase() === val.toLowerCase()
+                        );
+                        if (exactMatch) {
+                          setSelectedCustomerId(exactMatch.id);
+                        }
+                      }
+                    }
+                  }}
+                >
+                  Search
+                </button>
+              </div>
               <label className="block text-xs font-bold text-slate-600 mb-1">Customer</label>
               <select 
                 className="block w-full text-sm border-slate-200 rounded-lg py-2 pl-3 border bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -290,7 +366,10 @@ export default function InvoiceCreate() {
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
               >
                 <option value="">Select Customer</option>
-                {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {filteredCustomers.map(c => {
+                  const code = c.emisCode || c.institutionCode || c.healthUnitCode;
+                  return <option key={c.id} value={c.id}>{c.name} {code ? `(${code})` : ''}</option>;
+                })}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -337,6 +416,55 @@ export default function InvoiceCreate() {
                   </button>
                   <div className="space-y-3">
                     <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Search Product</label>
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          placeholder="Code/Name"
+                          className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          value={productSearchInputs[index] || ''}
+                          onChange={(e) => setProductSearchInputs({ ...productSearchInputs, [index]: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const val = (productSearchInputs[index] || '').trim();
+                              setProductSearchApplied({ ...productSearchApplied, [index]: val });
+                              if (val.length > 0) {
+                                const matches = products.filter(p => String(p.name || '').toLowerCase().includes(val.toLowerCase()) || String(p.code || '').toLowerCase().includes(val.toLowerCase()));
+                                if (matches.length === 1) {
+                                  handleProductSelect(index, matches[0].id);
+                                } else {
+                                  const exactMatch = products.find(p => String(p.code || '').toLowerCase() === val.toLowerCase() || String(p.name || '').toLowerCase() === val.toLowerCase());
+                                  if (exactMatch) {
+                                    handleProductSelect(index, exactMatch.id);
+                                  }
+                                }
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm hover:bg-slate-300 transition-colors"
+                          onClick={() => {
+                            const val = (productSearchInputs[index] || '').trim();
+                            setProductSearchApplied({ ...productSearchApplied, [index]: val });
+                            if (val.length > 0) {
+                              const matches = products.filter(p => String(p.name || '').toLowerCase().includes(val.toLowerCase()) || String(p.code || '').toLowerCase().includes(val.toLowerCase()));
+                              if (matches.length === 1) {
+                                handleProductSelect(index, matches[0].id);
+                              } else {
+                                const exactMatch = products.find(p => String(p.code || '').toLowerCase() === val.toLowerCase() || String(p.name || '').toLowerCase() === val.toLowerCase());
+                                if (exactMatch) {
+                                  handleProductSelect(index, exactMatch.id);
+                                }
+                              }
+                            }
+                          }}
+                        >
+                          Search
+                        </button>
+                      </div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Product</label>
                       <select 
                         className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white"
@@ -344,7 +472,9 @@ export default function InvoiceCreate() {
                         onChange={(e) => handleProductSelect(index, e.target.value)}
                       >
                         <option value="">Select...</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {products
+                          .filter(p => !productSearchApplied[index] || String(p.name || '').toLowerCase().includes(productSearchApplied[index].toLowerCase()) || String(p.code || '').toLowerCase().includes(productSearchApplied[index].toLowerCase()))
+                          .map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
