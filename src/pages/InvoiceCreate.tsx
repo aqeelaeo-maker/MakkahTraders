@@ -550,16 +550,14 @@ export default function InvoiceCreate() {
             <div className="mb-3">
               {selectedCustomerDetails ? (
                 <div className="text-[11px] leading-tight">
-                  <p className="font-bold text-sm text-gray-900 mb-0.5">{selectedCustomerDetails.name}</p>
-                  {(selectedCustomerDetails.customerType === 'school' || selectedCustomerDetails.isSchool) && selectedCustomerDetails.emisCode && (
-                    <p><span className="font-semibold">EMIS Code:</span> {selectedCustomerDetails.emisCode}</p>
-                  )}
-                  {selectedCustomerDetails.customerType === 'college' && selectedCustomerDetails.institutionCode && (
-                    <p><span className="font-semibold">Institution Code:</span> {selectedCustomerDetails.institutionCode}</p>
-                  )}
-                  {selectedCustomerDetails.customerType === 'health_unit' && selectedCustomerDetails.healthUnitCode && (
-                    <p><span className="font-semibold">Health Unit Code:</span> {selectedCustomerDetails.healthUnitCode}</p>
-                  )}
+                  {(() => {
+                    const code = selectedCustomerDetails.emisCode || selectedCustomerDetails.institutionCode || selectedCustomerDetails.healthUnitCode;
+                    return (
+                      <p className="font-bold text-sm text-gray-900 mb-0.5">
+                        {code ? `${code}, ` : ''}{selectedCustomerDetails.name}
+                      </p>
+                    );
+                  })()}
                   {(!selectedCustomerDetails.customerType || selectedCustomerDetails.customerType === 'other') && selectedCustomerDetails.ntn && (
                     <p><span className="font-semibold">NTN:</span> {selectedCustomerDetails.ntn}</p>
                   )}
