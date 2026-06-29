@@ -30,15 +30,55 @@ export default function InvoiceCreate() {
   const [discount, setDiscount] = useState(0);
   const [status, setStatus] = useState<'Draft' | 'Paid' | 'Unpaid'>('Unpaid');
   const [date, setDate] = useState<number>(Date.now());
-  const [customerInstCodeSearch, setCustomerInstCodeSearch] = useState('');
-  const [customerInstCodeSearchInput, setCustomerInstCodeSearchInput] = useState('');
-  const [productSearchInputs, setProductSearchInputs] = useState<{ [key: number]: string }>({});
-  const [productSearchApplied, setProductSearchApplied] = useState<{ [key: number]: string }>({});
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
+  const productDropdownRef = useRef<HTMLDivElement>(null);
+  const [currentItem, setCurrentItem] = useState<Partial<InvoiceItem>>({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 });
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     fetchInitialData();
   }, [id]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+        setIsCustomerDropdownOpen(false);
+      }
+      if (productDropdownRef.current && !productDropdownRef.current.contains(event.target as Node)) {
+        setIsProductDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedCustomerId && !isCustomerDropdownOpen) {
+      const c = customers.find(x => x.id === selectedCustomerId);
+      if (c) {
+        const code = c.emisCode || c.institutionCode || c.healthUnitCode;
+        setCustomerSearchTerm(`${c.name} ${code ? `(${code})` : ''}`);
+      }
+    }
+  }, [selectedCustomerId, customers, isCustomerDropdownOpen]);
+
+  useEffect(() => {
+    if (currentItem.productId && !isProductDropdownOpen) {
+      const p = products.find(x => x.id === currentItem.productId);
+      if (p) {
+        const expectedTerm = `${p.name} ${p.code ? `(${p.code})` : ''}`;
+        if (productSearchTerm !== expectedTerm) {
+          setProductSearchTerm(expectedTerm);
+        }
+      }
+    }
+  }, [currentItem.productId, products, isProductDropdownOpen, productSearchTerm]);
 
   const fetchInitialData = async () => {
     if (!auth.currentUser) return;
@@ -123,7 +163,6 @@ export default function InvoiceCreate() {
         setInvoiceNumber(`${compCode}-${currentYear}-${formattedSeq}`);
         setDate(Date.now());
         setItems([]);
-        addItemRow();
       }
     } catch (err) {
       console.error(err);
@@ -133,7 +172,14 @@ export default function InvoiceCreate() {
   };
 
   const addItemRow = () => {
-    setItems([...items, { id: Math.random().toString(), qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 }]);
+    if (!currentItem.productId) {
+      alert("Please select a product");
+      return;
+    }
+    setItems([...items, { ...currentItem, id: Math.random().toString() }]);
+    setCurrentItem({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 });
+    setProductSearchTerm('');
+    setIsProductDropdownOpen(false);
   };
 
   const removeItemRow = (index: number) => {
@@ -142,29 +188,28 @@ export default function InvoiceCreate() {
     setItems(newItems);
   };
 
-  const handleProductSelect = (index: number, productId: string) => {
+  const handleProductSelect = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
-      const newItems = [...items];
-      newItems[index] = {
-        ...newItems[index],
+      const newItem = {
+        ...currentItem,
         productId: product.id,
         productName: product.name,
         unitPrice: product.salePrice,
         taxPercentage: product.taxPercentage || 18,
       };
-      updateItemCalculations(newItems, index);
+      updateCurrentItemCalculations(newItem);
+    } else {
+      setCurrentItem({ ...currentItem, productId: '', productName: '' });
     }
   };
 
-  const handleItemChange = (index: number, field: keyof InvoiceItem, value: number) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    updateItemCalculations(newItems, index);
+  const handleCurrentItemChange = (field: keyof InvoiceItem, value: number) => {
+    const newItem = { ...currentItem, [field]: value };
+    updateCurrentItemCalculations(newItem);
   };
 
-  const updateItemCalculations = (currentItems: Partial<InvoiceItem>[], index: number) => {
-    const item = currentItems[index];
+  const updateCurrentItemCalculations = (item: Partial<InvoiceItem>) => {
     const qty = item.qty || 0;
     const unitPrice = item.unitPrice || 0;
     const taxPerc = item.taxPercentage || 0;
@@ -173,8 +218,7 @@ export default function InvoiceCreate() {
     const tax = (total * taxPerc) / 100;
     const grandTotal = total + tax;
 
-    currentItems[index] = { ...item, total, tax, grandTotal };
-    setItems(currentItems);
+    setCurrentItem({ ...item, total, tax, grandTotal });
   };
 
   // Calculations
@@ -249,13 +293,6 @@ export default function InvoiceCreate() {
 
   const selectedCustomerDetails = customers.find(c => c.id === selectedCustomerId);
   
-  const filteredCustomers = customers.filter(c => 
-    !customerInstCodeSearch || 
-    String(c.institutionCode || '').toLowerCase().includes(customerInstCodeSearch.toLowerCase()) ||
-    String(c.emisCode || '').toLowerCase().includes(customerInstCodeSearch.toLowerCase()) ||
-    String(c.healthUnitCode || '').toLowerCase().includes(customerInstCodeSearch.toLowerCase())
-  );
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center">
@@ -293,207 +330,176 @@ export default function InvoiceCreate() {
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
             <h3 className="text-xs font-bold uppercase text-slate-400 tracking-widest border-b border-slate-100 pb-2">Document Details</h3>
-            <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Search Customer by Code</label>
-              <div className="flex gap-2 mb-3">
-                <input 
-                  type="text" 
-                  placeholder="Enter EMIS/Inst/Health Unit Code"
-                  className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  value={customerInstCodeSearchInput}
-                  onChange={(e) => setCustomerInstCodeSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const val = customerInstCodeSearchInput.trim();
-                      setCustomerInstCodeSearch(val);
-                      if (val.length > 0) {
-                        const matches = customers.filter(c => 
-                          String(c.institutionCode || '').toLowerCase().includes(val.toLowerCase()) ||
-                          String(c.emisCode || '').toLowerCase().includes(val.toLowerCase()) ||
-                          String(c.healthUnitCode || '').toLowerCase().includes(val.toLowerCase())
-                        );
-                        if (matches.length === 1) {
-                          setSelectedCustomerId(matches[0].id);
-                        } else {
-                          const exactMatch = customers.find(c => 
-                            String(c.institutionCode || '').toLowerCase() === val.toLowerCase() ||
-                            String(c.emisCode || '').toLowerCase() === val.toLowerCase() ||
-                            String(c.healthUnitCode || '').toLowerCase() === val.toLowerCase()
-                          );
-                          if (exactMatch) {
-                            setSelectedCustomerId(exactMatch.id);
-                          }
-                        }
-                      }
-                    }
-                  }}
-                />
-                <button 
-                  type="button"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors"
-                  onClick={() => {
-                    const val = customerInstCodeSearchInput.trim();
-                    setCustomerInstCodeSearch(val);
-                    if (val.length > 0) {
-                      const matches = customers.filter(c => 
-                        String(c.institutionCode || '').toLowerCase().includes(val.toLowerCase()) ||
-                        String(c.emisCode || '').toLowerCase().includes(val.toLowerCase()) ||
-                        String(c.healthUnitCode || '').toLowerCase().includes(val.toLowerCase())
-                      );
-                      if (matches.length === 1) {
-                        setSelectedCustomerId(matches[0].id);
-                      } else {
-                        const exactMatch = customers.find(c => 
-                          String(c.institutionCode || '').toLowerCase() === val.toLowerCase() ||
-                          String(c.emisCode || '').toLowerCase() === val.toLowerCase() ||
-                          String(c.healthUnitCode || '').toLowerCase() === val.toLowerCase()
-                        );
-                        if (exactMatch) {
-                          setSelectedCustomerId(exactMatch.id);
-                        }
-                      }
-                    }
-                  }}
-                >
-                  Search
-                </button>
-              </div>
+            <div className="relative" ref={customerDropdownRef}>
               <label className="block text-xs font-bold text-slate-600 mb-1">Customer</label>
-              <select 
-                className="block w-full text-sm border-slate-200 rounded-lg py-2 pl-3 border bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(e.target.value)}
-              >
-                <option value="">Select Customer</option>
-                {filteredCustomers.map(c => {
-                  const code = c.emisCode || c.institutionCode || c.healthUnitCode;
-                  return <option key={c.id} value={c.id}>{c.name} {code ? `(${code})` : ''}</option>;
-                })}
-              </select>
+              <input
+                type="text"
+                placeholder="Search by name, EMIS/Inst/Health Unit Code..."
+                className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                value={customerSearchTerm}
+                onChange={(e) => {
+                  setCustomerSearchTerm(e.target.value);
+                  setIsCustomerDropdownOpen(true);
+                  if (e.target.value === '') {
+                    setSelectedCustomerId('');
+                  }
+                }}
+                onFocus={() => setIsCustomerDropdownOpen(true)}
+              />
+              {isCustomerDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {customers
+                    .filter(c => {
+                      const search = customerSearchTerm.toLowerCase();
+                      return (
+                        c.name.toLowerCase().includes(search) ||
+                        String(c.institutionCode || '').toLowerCase().includes(search) ||
+                        String(c.emisCode || '').toLowerCase().includes(search) ||
+                        String(c.healthUnitCode || '').toLowerCase().includes(search)
+                      );
+                    })
+                    .map(c => {
+                      const code = c.emisCode || c.institutionCode || c.healthUnitCode;
+                      return (
+                        <div
+                          key={c.id}
+                          className="px-3 py-2 cursor-pointer hover:bg-slate-50 text-sm border-b border-slate-100 last:border-0"
+                          onClick={() => {
+                            setSelectedCustomerId(c.id);
+                            setCustomerSearchTerm(`${c.name} ${code ? `(${code})` : ''}`);
+                            setIsCustomerDropdownOpen(false);
+                          }}
+                        >
+                          <div className="font-medium text-slate-800">{c.name}</div>
+                          {code && <div className="text-xs text-slate-500">Code: {code}</div>}
+                        </div>
+                      );
+                    })}
+                  {customers.filter(c => {
+                      const search = customerSearchTerm.toLowerCase();
+                      return (
+                        c.name.toLowerCase().includes(search) ||
+                        String(c.institutionCode || '').toLowerCase().includes(search) ||
+                        String(c.emisCode || '').toLowerCase().includes(search) ||
+                        String(c.healthUnitCode || '').toLowerCase().includes(search)
+                      );
+                    }).length === 0 && (
+                    <div className="px-3 py-2 text-sm text-slate-500">No customers found</div>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Invoice No</label>
-                <input 
-                  type="text" 
-                  value={invoiceNumber}
-                  readOnly
-                  className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-100 font-mono font-medium text-slate-600"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Status</label>
-                <select 
-                  className="block w-full text-sm border-slate-200 rounded-lg py-2 pl-3 border bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  value={status}
-                  onChange={(e: any) => setStatus(e.target.value)}
-                >
-                  <option value="Unpaid">Unpaid</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Draft">Draft</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">Invoice No</label>
+              <input 
+                type="text" 
+                value={invoiceNumber}
+                readOnly
+                className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-100 font-mono font-medium text-slate-600"
+              />
             </div>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+            <div className="border-b border-slate-100 pb-2">
               <h3 className="text-xs font-bold uppercase text-slate-400 tracking-widest">Items</h3>
-              <button onClick={addItemRow} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center uppercase tracking-wider">
-                <Plus className="w-3 h-3 mr-1" /> Add
-              </button>
             </div>
             
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-2 max-h-64 overflow-y-auto">
               {items.map((item, index) => (
-                <div key={item.id} className="border border-slate-100 bg-slate-50/50 rounded-xl p-3 relative group">
-                  <button 
-                    onClick={() => removeItemRow(index)}
-                    className="absolute top-3 right-3 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Search Product</label>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="text"
-                          placeholder="Code/Name"
-                          className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          value={productSearchInputs[index] || ''}
-                          onChange={(e) => setProductSearchInputs({ ...productSearchInputs, [index]: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const val = (productSearchInputs[index] || '').trim();
-                              setProductSearchApplied({ ...productSearchApplied, [index]: val });
-                              if (val.length > 0) {
-                                const matches = products.filter(p => String(p.name || '').toLowerCase().includes(val.toLowerCase()) || String(p.code || '').toLowerCase().includes(val.toLowerCase()));
-                                if (matches.length === 1) {
-                                  handleProductSelect(index, matches[0].id);
-                                } else {
-                                  const exactMatch = products.find(p => String(p.code || '').toLowerCase() === val.toLowerCase() || String(p.name || '').toLowerCase() === val.toLowerCase());
-                                  if (exactMatch) {
-                                    handleProductSelect(index, exactMatch.id);
-                                  }
-                                }
-                              }
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm hover:bg-slate-300 transition-colors"
-                          onClick={() => {
-                            const val = (productSearchInputs[index] || '').trim();
-                            setProductSearchApplied({ ...productSearchApplied, [index]: val });
-                            if (val.length > 0) {
-                              const matches = products.filter(p => String(p.name || '').toLowerCase().includes(val.toLowerCase()) || String(p.code || '').toLowerCase().includes(val.toLowerCase()));
-                              if (matches.length === 1) {
-                                handleProductSelect(index, matches[0].id);
-                              } else {
-                                const exactMatch = products.find(p => String(p.code || '').toLowerCase() === val.toLowerCase() || String(p.name || '').toLowerCase() === val.toLowerCase());
-                                if (exactMatch) {
-                                  handleProductSelect(index, exactMatch.id);
-                                }
-                              }
-                            }
-                          }}
-                        >
-                          Search
-                        </button>
-                      </div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Product</label>
-                      <select 
-                        className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white"
-                        value={item.productId || ''}
-                        onChange={(e) => handleProductSelect(index, e.target.value)}
-                      >
-                        <option value="">Select...</option>
-                        {products
-                          .filter(p => !productSearchApplied[index] || String(p.name || '').toLowerCase().includes(productSearchApplied[index].toLowerCase()) || String(p.code || '').toLowerCase().includes(productSearchApplied[index].toLowerCase()))
-                          .map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qty</label>
-                        <input type="number" min="1" value={item.qty || ''} onChange={e => handleItemChange(index, 'qty', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Price</label>
-                        <input type="number" value={item.unitPrice || ''} onChange={e => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tax %</label>
-                        <input type="number" value={item.taxPercentage || ''} onChange={e => handleItemChange(index, 'taxPercentage', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" />
-                      </div>
-                    </div>
+                <div key={item.id} className="flex justify-between items-center border border-slate-100 bg-slate-50/50 rounded-lg p-2 group">
+                  <div className="text-sm">
+                    <span className="font-semibold text-slate-700">{item.productName}</span>
+                    <span className="text-slate-500 text-xs ml-2">({item.qty} x Rs {item.unitPrice})</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-slate-800">Rs {item.total?.toFixed(2)}</span>
+                    <button 
+                      onClick={() => removeItemRow(index)}
+                      className="text-red-400 hover:text-red-600 transition-colors p-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}
+              {items.length === 0 && (
+                <div className="text-center text-sm text-slate-400 py-4 border border-dashed border-slate-200 rounded-lg">No products added yet.</div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-100 pt-4 space-y-3 bg-slate-50/50 -mx-5 px-5 pb-5 rounded-b-2xl">
+              <h4 className="text-xs font-bold uppercase text-slate-500">New Product</h4>
+              <div className="relative" ref={productDropdownRef}>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Product</label>
+                <input
+                  type="text"
+                  placeholder="Search Code or Name..."
+                  className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  value={productSearchTerm}
+                  onChange={(e) => {
+                    setProductSearchTerm(e.target.value);
+                    setIsProductDropdownOpen(true);
+                    if (e.target.value === '') {
+                      handleProductSelect('');
+                    }
+                  }}
+                  onFocus={() => setIsProductDropdownOpen(true)}
+                />
+                {isProductDropdownOpen && (
+                  <div className="absolute bottom-full mb-1 z-10 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {products
+                      .filter(p => {
+                        const search = productSearchTerm.toLowerCase();
+                        return (
+                          p.name.toLowerCase().includes(search) ||
+                          String(p.code || '').toLowerCase().includes(search)
+                        );
+                      })
+                      .map(p => (
+                        <div
+                          key={p.id}
+                          className="px-3 py-2 cursor-pointer hover:bg-slate-50 text-sm border-b border-slate-100 last:border-0"
+                          onClick={() => {
+                            handleProductSelect(p.id);
+                            setProductSearchTerm(`${p.name} ${p.code ? `(${p.code})` : ''}`);
+                            setIsProductDropdownOpen(false);
+                          }}
+                        >
+                          <div className="font-medium text-slate-800">{p.name}</div>
+                          {p.code && <div className="text-xs text-slate-500">Code: {p.code}</div>}
+                        </div>
+                      ))}
+                    {products.filter(p => {
+                        const search = productSearchTerm.toLowerCase();
+                        return (
+                          p.name.toLowerCase().includes(search) ||
+                          String(p.code || '').toLowerCase().includes(search)
+                        );
+                      }).length === 0 && (
+                      <div className="px-3 py-2 text-sm text-slate-500">No products found</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qty</label>
+                  <input type="number" min="1" value={currentItem.qty || ''} onChange={e => handleCurrentItemChange('qty', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Price</label>
+                  <input type="number" value={currentItem.unitPrice || ''} onChange={e => handleCurrentItemChange('unitPrice', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tax %</label>
+                  <input type="number" value={currentItem.taxPercentage || ''} onChange={e => handleCurrentItemChange('taxPercentage', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" />
+                </div>
+              </div>
+              
+              <button onClick={addItemRow} type="button" className="w-full mt-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-indigo-100 transition-colors flex justify-center items-center">
+                <Plus className="w-4 h-4 mr-2" /> Add Product
+              </button>
             </div>
 
             <div className="border-t border-slate-100 pt-4 space-y-2">
@@ -561,7 +567,6 @@ export default function InvoiceCreate() {
                   {(!selectedCustomerDetails.customerType || selectedCustomerDetails.customerType === 'other') && selectedCustomerDetails.ntn && (
                     <p><span className="font-semibold">NTN:</span> {selectedCustomerDetails.ntn}</p>
                   )}
-                  <p className="text-gray-600">Phone: {selectedCustomerDetails.phone}</p>
                 </div>
               ) : (
                 <p className="text-gray-400 italic text-[11px]">Select a customer...</p>

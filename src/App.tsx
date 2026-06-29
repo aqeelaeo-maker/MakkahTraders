@@ -11,7 +11,6 @@ import Invoices from './pages/Invoices';
 import InvoiceCreate from './pages/InvoiceCreate';
 import Customers from './pages/Customers';
 import Products from './pages/Products';
-import Inventory from './pages/Inventory';
 import Settings from './pages/Settings';
 import Team from './pages/Team';
 
@@ -27,7 +26,6 @@ export default function App() {
           <Route path="invoices/edit/:id" element={<InvoiceCreate />} />
           <Route path="customers" element={<Customers />} />
           <Route path="products" element={<Products />} />
-          <Route path="inventory" element={<Inventory />} />
           <Route path="settings" element={<Settings />} />
           <Route path="team" element={<Team />} />
           <Route path="*" element={<Navigate to="/" replace />} />

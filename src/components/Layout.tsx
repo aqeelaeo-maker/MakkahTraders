@@ -76,7 +76,6 @@ export default function Layout() {
     { name: 'Invoices', path: '/invoices', icon: FileText },
     { name: 'Customers', path: '/customers', icon: Users },
     { name: 'Products', path: '/products', icon: Package },
-    { name: 'Inventory', path: '/inventory', icon: Store },
     { name: 'Settings', path: '/settings', icon: Settings },
     // Only show Team navigation to Admin, or let everyone see it (but only admin can edit)
   ];

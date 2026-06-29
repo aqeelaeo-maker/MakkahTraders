@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { Invoice, Product } from '../types';
+import { Invoice } from '../types';
 import { format } from 'date-fns';
 
 export default function Dashboard() {
@@ -13,7 +13,6 @@ export default function Dashboard() {
     pendingFilings: 0,
   });
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
-  const [lowStockAlerts, setLowStockAlerts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,19 +46,6 @@ export default function Dashboard() {
         // Fetch customers
         const customersRef = query(collection(db, 'customers'), where('userId', '==', userId));
         const customersSnapshot = await getDocs(customersRef);
-        
-        // Fetch products
-        const productsRef = query(collection(db, 'products'), where('userId', '==', userId));
-        const productsSnapshot = await getDocs(productsRef);
-        const allProducts: Product[] = [];
-        productsSnapshot.forEach(doc => {
-          const p = doc.data() as Product;
-          p.id = doc.id;
-          allProducts.push(p);
-        });
-
-        const lowStock = allProducts.filter(p => p.currentStock <= p.minimumStock);
-        setLowStockAlerts(lowStock.slice(0, 4));
 
         setStats({
           totalSales,
@@ -133,7 +119,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Invoices Table (Large Bento Card) */}
-        <div className="col-span-1 lg:col-span-3 lg:row-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="col-span-1 lg:col-span-4 lg:row-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <h3 className="font-bold text-slate-800 uppercase text-xs tracking-widest">Recent Sales Tax Invoices</h3>
             <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold">LIVE SYNC ACTIVE</span>
@@ -172,30 +158,6 @@ export default function Dashboard() {
           </div>
           <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex justify-center">
             <Link to="/invoices" className="text-indigo-600 text-xs font-bold uppercase tracking-widest">View Complete Ledger</Link>
-          </div>
-        </div>
-
-        {/* Inventory Alert (Vertical Bento Card) */}
-        <div className="col-span-1 lg:row-span-4 bg-slate-900 rounded-2xl p-6 text-white flex flex-col shadow-sm">
-          <h3 className="text-xs font-bold uppercase text-indigo-400 tracking-widest mb-4">Low Stock Alerts</h3>
-          <div className="space-y-4 flex-1 overflow-auto">
-            {lowStockAlerts.length > 0 ? lowStockAlerts.map(product => (
-              <div key={product.id} className="border-b border-slate-800 pb-3">
-                <p className="text-xs text-slate-400 font-bold mb-1">{product.code}</p>
-                <p className="text-sm font-semibold">{product.name}</p>
-                <div className="flex justify-between items-center mt-2">
-                  <span className={`text-[10px] px-2 py-0.5 rounded ${product.currentStock <= 0 ? 'bg-red-900/50 text-red-400' : 'bg-amber-900/50 text-amber-400'}`}>
-                    {product.currentStock <= 0 ? 'Out of Stock' : 'Low Stock'}
-                  </span>
-                  <span className="text-xs">{product.currentStock} Left</span>
-                </div>
-              </div>
-            )) : (
-              <p className="text-sm text-slate-400">All products have sufficient stock.</p>
-            )}
-          </div>
-          <div className="mt-4 pt-4 border-t border-slate-800">
-            <Link to="/inventory" className="block text-center w-full py-2 bg-indigo-500 rounded-lg text-xs font-bold hover:bg-indigo-400 transition-colors">Manage Inventory</Link>
           </div>
         </div>
 
