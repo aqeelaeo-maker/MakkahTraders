@@ -526,13 +526,13 @@ export default function InvoiceCreate() {
             )}
             {/* Header */}
             <div className="border-b-2 border-gray-900 pb-2 mb-2">
-              <div className="flex flex-row items-stretch justify-center relative mb-2">
-                <div className="absolute left-0 top-0 bottom-0 flex justify-start pl-4 py-1">
+              <div className="flex flex-row items-stretch justify-center relative mb-1">
+                <div className="absolute left-0 top-0 bottom-0 flex justify-start py-1">
                   {company?.logoUrl && (
                     <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[72px] w-auto object-contain" />
                   )}
                 </div>
-                <div className="flex flex-col items-center justify-between text-center min-h-[72px]">
+                <div className="flex flex-col items-center justify-between text-center min-h-[72px] pl-12">
                   <h1 className="font-serif text-[42px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-3">
                     {company?.name || 'Company Name'}
                   </h1>
@@ -541,10 +541,12 @@ export default function InvoiceCreate() {
                   </div>
                 </div>
               </div>
-              <div className="-mx-8 px-8 bg-black text-white py-1.5 text-[18px] font-bold uppercase tracking-widest mb-2 leading-none text-center">
-                NTN: {company?.ntn} | STRN: {company?.strn}
+              <div className="flex justify-center mb-1">
+                <div className="bg-black text-white px-6 py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center rounded-sm">
+                  NTN: {company?.ntn} | STRN: {company?.strn}
+                </div>
               </div>
-              <div className="text-[14px] text-gray-800 font-medium leading-snug text-center">
+              <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
                 {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
                 <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
                 {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
