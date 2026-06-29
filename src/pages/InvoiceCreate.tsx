@@ -525,52 +525,61 @@ export default function InvoiceCreate() {
               </div>
             )}
             {/* Header */}
-            <div className="flex justify-between items-start border-b-2 border-gray-800 pb-4 mb-4">
-              <div className="flex gap-4 items-start">
-                {company?.logoUrl && (
-                  <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="w-12 h-12 object-contain" />
-                )}
-                <div>
-                  <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">{company?.name || 'Company Name'}</h1>
-                  <p className="text-[11px] text-gray-600 mt-1 max-w-xs">{company?.address}</p>
-                  <div className="mt-1 text-[11px] leading-tight">
-                    <span className="font-bold">NTN:</span> {company?.ntn} | <span className="font-bold">STRN:</span> {company?.strn} <br/>
-                    <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
-                    {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
+            <div className="border-b-2 border-gray-900 pb-4 mb-4">
+              <div className="flex flex-row items-start mb-4">
+                <div className="w-1/5 flex justify-start pl-4 -mt-2">
+                  {company?.logoUrl && (
+                    <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="w-32 h-32 object-contain" />
+                  )}
+                </div>
+                <div className="flex-1 flex flex-col items-center justify-start text-center">
+                  <h1 className="text-[42px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-5">
+                    {company?.name || 'Company Name'}
+                  </h1>
+                  <div className="text-[22px] whitespace-nowrap font-bold text-gray-800 uppercase tracking-widest leading-none">
+                    GENERAL ORDER SUPPLIER
                   </div>
                 </div>
+                <div className="w-1/5"></div>
               </div>
-              <div className="text-right">
-                <h2 className="text-2xl font-bold text-gray-300 uppercase tracking-widest mb-1 leading-none">Sales Tax Invoice</h2>
-                <div className="text-[11px] space-y-0.5">
-                  <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-gray-900">{invoiceNumber}</span></p>
-                  <p><span className="font-semibold text-gray-600">Date:</span> <span className="text-gray-900">{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
-                  <div className="mt-2 inline-block">
-                    {invoiceNumber && <Barcode value={invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
-                  </div>
-                </div>
+              <div className="-mx-8 px-8 bg-black text-white py-2 text-[18px] font-bold uppercase tracking-widest mb-4 leading-none text-center">
+                NTN: {company?.ntn} | STRN: {company?.strn}
+              </div>
+              <div className="text-[14px] text-gray-800 font-medium leading-snug text-center">
+                {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
+                <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
+                {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
               </div>
             </div>
 
-            {/* Customer Info */}
-            <div className="mb-3">
-              {selectedCustomerDetails ? (
-                <div className="text-[11px] leading-tight">
-                  {(() => {
-                    const code = selectedCustomerDetails.emisCode || selectedCustomerDetails.institutionCode || selectedCustomerDetails.healthUnitCode;
-                    return (
-                      <p className="font-bold text-sm text-gray-900 mb-0.5">
-                        {code ? `${code}, ` : ''}{selectedCustomerDetails.name}
-                      </p>
-                    );
-                  })()}
-                  {(!selectedCustomerDetails.customerType || selectedCustomerDetails.customerType === 'other') && selectedCustomerDetails.ntn && (
-                    <p><span className="font-semibold">NTN:</span> {selectedCustomerDetails.ntn}</p>
-                  )}
+            {/* Customer Info & Invoice Details */}
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                {selectedCustomerDetails ? (
+                  <div className="text-[16px] leading-tight">
+                    {(() => {
+                      const code = selectedCustomerDetails.emisCode || selectedCustomerDetails.institutionCode || selectedCustomerDetails.healthUnitCode;
+                      return (
+                        <p className="font-bold text-gray-900 mb-0.5">
+                          {code ? `${code}, ` : ''}{selectedCustomerDetails.name}
+                        </p>
+                      );
+                    })()}
+                    {(!selectedCustomerDetails.customerType || selectedCustomerDetails.customerType === 'other') && selectedCustomerDetails.ntn && (
+                      <p><span className="font-semibold">NTN:</span> {selectedCustomerDetails.ntn}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 italic text-[11px]">Select a customer...</p>
+                )}
+              </div>
+              <div className="text-right text-[11px] space-y-0.5">
+                <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-[16px] font-bold text-gray-900">{invoiceNumber}</span></p>
+                <p><span className="font-semibold text-gray-600">Date:</span> <span className="text-[16px] font-bold text-gray-900">{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
+                <div className="mt-2 inline-block">
+                  {invoiceNumber && <Barcode value={invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
                 </div>
-              ) : (
-                <p className="text-gray-400 italic text-[11px]">Select a customer...</p>
-              )}
+              </div>
             </div>
 
             {/* Table */}
