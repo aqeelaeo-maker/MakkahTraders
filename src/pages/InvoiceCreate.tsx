@@ -525,24 +525,23 @@ export default function InvoiceCreate() {
               </div>
             )}
             {/* Header */}
-            <div className="border-b-2 border-gray-900 pb-4 mb-4">
-              <div className="flex flex-row items-start mb-4">
-                <div className="w-1/5 flex justify-start pl-4 -mt-2">
+            <div className="border-b-2 border-gray-900 pb-2 mb-2">
+              <div className="flex flex-row items-stretch justify-center relative mb-2">
+                <div className="absolute left-0 top-0 bottom-0 flex justify-start pl-4 py-1">
                   {company?.logoUrl && (
-                    <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="w-32 h-32 object-contain" />
+                    <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[72px] w-auto object-contain" />
                   )}
                 </div>
-                <div className="flex-1 flex flex-col items-center justify-start text-center">
-                  <h1 className="text-[42px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-5">
+                <div className="flex flex-col items-center justify-between text-center min-h-[72px]">
+                  <h1 className="font-serif text-[42px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-3">
                     {company?.name || 'Company Name'}
                   </h1>
                   <div className="text-[22px] whitespace-nowrap font-bold text-gray-800 uppercase tracking-widest leading-none">
                     GENERAL ORDER SUPPLIER
                   </div>
                 </div>
-                <div className="w-1/5"></div>
               </div>
-              <div className="-mx-8 px-8 bg-black text-white py-2 text-[18px] font-bold uppercase tracking-widest mb-4 leading-none text-center">
+              <div className="-mx-8 px-8 bg-black text-white py-1.5 text-[18px] font-bold uppercase tracking-widest mb-2 leading-none text-center">
                 NTN: {company?.ntn} | STRN: {company?.strn}
               </div>
               <div className="text-[14px] text-gray-800 font-medium leading-snug text-center">
