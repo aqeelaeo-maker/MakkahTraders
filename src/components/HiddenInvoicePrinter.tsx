@@ -130,13 +130,13 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
           >
             {/* Background Watermark */}
             {company?.logoUrl && (
-              <div className="absolute inset-0 flex items-center justify-center z-[-1] opacity-5 pointer-events-none">
+              <div className="absolute inset-0 flex items-center justify-center z-0 opacity-10 pointer-events-none">
                 <img src={company.logoUrl} crossOrigin="anonymous" alt="Watermark" className="w-[150mm] h-[150mm] object-contain grayscale" />
               </div>
             )}
 
             {/* Header */}
-            <div className="border-b-2 border-gray-900 pb-2 mb-2">
+            <div className="border-b-2 border-gray-900 pb-2 mb-2 relative z-10">
               <div className="flex flex-row items-stretch justify-center relative mb-1">
                 <div className="absolute left-0 top-0 bottom-0 flex justify-start -mt-2">
                   {company?.logoUrl && (
@@ -163,7 +163,7 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
             </div>
 
             {/* Customer Info & Invoice Details */}
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex justify-between items-start mb-3 relative z-10">
               <div>
                 {customer ? (
                   <div className="text-[16px] leading-tight">
@@ -194,37 +194,58 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
             </div>
 
             {/* Table */}
-            <table className="w-full text-[13px] mb-4">
-              <thead>
-                <tr className="bg-gray-800 text-white text-left text-[14px]">
-                  <th className="py-2 px-2">Sr.</th>
-                  <th className="py-2 px-2">Description</th>
-                  <th className="py-2 px-2 text-center">Qty</th>
-                  <th className="py-2 px-2 text-right">Unit Price</th>
-                  <th className="py-2 px-2 text-right">Total Excl. Tax</th>
-                  <th className="py-2 px-2 text-center">Tax Rate</th>
-                  <th className="py-2 px-2 text-right">Sales Tax</th>
-                  <th className="py-2 px-2 text-right">Total Incl. Tax</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(invoice.items || []).map((item, idx) => (
-                  <tr key={idx} className="border-b border-gray-200">
-                    <td className="py-2 px-2">{idx + 1}</td>
-                    <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
-                    <td className="py-2 px-2 text-center">{item.qty || 0}</td>
-                    <td className="py-2 px-2 text-right">{(item.unitPrice || 0).toLocaleString()}</td>
-                    <td className="py-2 px-2 text-right">{(item.total || 0).toLocaleString()}</td>
-                    <td className="py-2 px-2 text-center">{item.taxPercentage || 0}%</td>
-                    <td className="py-2 px-2 text-right">{(item.tax || 0).toLocaleString()}</td>
-                    <td className="py-2 px-2 text-right font-semibold">{(item.grandTotal || 0).toLocaleString()}</td>
+            {invoiceTitle === 'Sales Tax Invoice' ? (
+              <table className="w-full text-[13px] mb-4 relative z-10">
+                <thead>
+                  <tr className="bg-gray-800 text-white text-left text-[14px]">
+                    <th className="py-2 px-2">Sr.</th>
+                    <th className="py-2 px-2">Description</th>
+                    <th className="py-2 px-2 text-center">Qty</th>
+                    <th className="py-2 px-2 text-right">Unit Price</th>
+                    <th className="py-2 px-2 text-right">Total Excl. Tax</th>
+                    <th className="py-2 px-2 text-center">Tax Rate</th>
+                    <th className="py-2 px-2 text-right">Sales Tax</th>
+                    <th className="py-2 px-2 text-right">Total Incl. Tax</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(invoice.items || []).map((item, idx) => (
+                    <tr key={idx} className="border-b border-gray-200">
+                      <td className="py-2 px-2">{idx + 1}</td>
+                      <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
+                      <td className="py-2 px-2 text-center">{item.qty || 0}</td>
+                      <td className="py-2 px-2 text-right">{(item.unitPrice || 0).toLocaleString()}</td>
+                      <td className="py-2 px-2 text-right">{(item.total || 0).toLocaleString()}</td>
+                      <td className="py-2 px-2 text-center">{item.taxPercentage || 0}%</td>
+                      <td className="py-2 px-2 text-right">{(item.tax || 0).toLocaleString()}</td>
+                      <td className="py-2 px-2 text-right font-semibold">{(item.grandTotal || 0).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full text-[13px] mb-4 relative z-10">
+                <thead>
+                  <tr className="bg-gray-800 text-white text-left text-[14px]">
+                    <th className="py-2 px-2">Description</th>
+                    <th className="py-2 px-2 text-right">Value Excluding Sales Tax</th>
+                    <th className="py-2 px-2 text-right">Sales Tax Payment</th>
+                    <th className="py-2 px-2 text-right">Value Including Sales tax</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-200">
+                    <td className="py-4 px-2 font-medium text-[15px]">GST {(invoice.items || []).find(i => i.taxPercentage > 0)?.taxPercentage || '18'}% or 16% given in Sales Tax invoice against Bill No {invoice.invoiceNumber}</td>
+                    <td className="py-4 px-2 text-right font-semibold text-[15px]">{invoice.subtotal.toLocaleString()}</td>
+                    <td className="py-4 px-2 text-right font-semibold text-[15px]">{invoice.taxAmount.toLocaleString()}</td>
+                    <td className="py-4 px-2 text-right font-semibold text-[15px]">{(invoice.subtotal + invoice.taxAmount).toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
 
             {/* Totals & Footer Info */}
-            <div className="flex justify-end items-start mt-auto pt-4 border-t border-gray-200">
+            <div className="flex justify-end items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
               <div className="w-1/2">
                 <div className="bg-gray-50 p-2 rounded border border-gray-200 text-[11px]">
                   <div className="flex justify-between py-1">
