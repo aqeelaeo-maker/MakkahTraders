@@ -527,9 +527,9 @@ export default function InvoiceCreate() {
             {/* Header */}
             <div className="border-b-2 border-gray-900 pb-2 mb-2">
               <div className="flex flex-row items-stretch justify-center relative mb-1">
-                <div className="absolute left-0 top-0 bottom-0 flex justify-start py-1">
+                <div className="absolute left-0 top-0 bottom-0 flex justify-start -mt-2">
                   {company?.logoUrl && (
-                    <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[72px] w-auto object-contain" />
+                    <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[96px] w-auto object-contain" />
                   )}
                 </div>
                 <div className="flex flex-col items-center justify-between text-center min-h-[72px] pl-12">
@@ -541,7 +541,7 @@ export default function InvoiceCreate() {
                   </div>
                 </div>
               </div>
-              <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center">
+              <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center pl-12">
                 NTN: {company?.ntn} | STRN: {company?.strn}
               </div>
               <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
@@ -582,30 +582,30 @@ export default function InvoiceCreate() {
             </div>
 
             {/* Table */}
-            <table className="w-full text-[11px] mb-4">
+            <table className="w-full text-[13px] mb-4">
               <thead>
-                <tr className="bg-gray-800 text-white text-left">
-                  <th className="py-1 px-2">Sr.</th>
-                  <th className="py-1 px-2">Description</th>
-                  <th className="py-1 px-2 text-center">Qty</th>
-                  <th className="py-1 px-2 text-right">Unit Price</th>
-                  <th className="py-1 px-2 text-right">Total Excl. Tax</th>
-                  <th className="py-1 px-2 text-center">Tax Rate</th>
-                  <th className="py-1 px-2 text-right">Sales Tax</th>
-                  <th className="py-1 px-2 text-right">Total Incl. Tax</th>
+                <tr className="bg-gray-800 text-white text-left text-[14px]">
+                  <th className="py-2 px-2">Sr.</th>
+                  <th className="py-2 px-2">Description</th>
+                  <th className="py-2 px-2 text-center">Qty</th>
+                  <th className="py-2 px-2 text-right">Unit Price</th>
+                  <th className="py-2 px-2 text-right">Total Excl. Tax</th>
+                  <th className="py-2 px-2 text-center">Tax Rate</th>
+                  <th className="py-2 px-2 text-right">Sales Tax</th>
+                  <th className="py-2 px-2 text-right">Total Incl. Tax</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item, idx) => (
                   <tr key={idx} className="border-b border-gray-200">
-                    <td className="py-1.5 px-2">{idx + 1}</td>
-                    <td className="py-1.5 px-2 font-medium">{item.productName || '-'}</td>
-                    <td className="py-1.5 px-2 text-center">{item.qty || 0}</td>
-                    <td className="py-1.5 px-2 text-right">{(item.unitPrice || 0).toLocaleString()}</td>
-                    <td className="py-1.5 px-2 text-right">{(item.total || 0).toLocaleString()}</td>
-                    <td className="py-1.5 px-2 text-center">{item.taxPercentage || 0}%</td>
-                    <td className="py-1.5 px-2 text-right">{(item.tax || 0).toLocaleString()}</td>
-                    <td className="py-1.5 px-2 text-right font-semibold">{(item.grandTotal || 0).toLocaleString()}</td>
+                    <td className="py-2 px-2">{idx + 1}</td>
+                    <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
+                    <td className="py-2 px-2 text-center">{item.qty || 0}</td>
+                    <td className="py-2 px-2 text-right">{(item.unitPrice || 0).toLocaleString()}</td>
+                    <td className="py-2 px-2 text-right">{(item.total || 0).toLocaleString()}</td>
+                    <td className="py-2 px-2 text-center">{item.taxPercentage || 0}%</td>
+                    <td className="py-2 px-2 text-right">{(item.tax || 0).toLocaleString()}</td>
+                    <td className="py-2 px-2 text-right font-semibold">{(item.grandTotal || 0).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
