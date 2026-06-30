@@ -10,6 +10,8 @@
   * {
     overflow: visible !important;
     height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   body, html, #root {
     background: white !important;
@@ -24,7 +26,7 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 210mm !important;
     margin: 0;
     padding: 0;
     box-shadow: none !important;

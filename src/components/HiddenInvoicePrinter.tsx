@@ -132,55 +132,62 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
         )}
 
         {/* Header */}
-        <div className="flex justify-between items-start border-b-2 border-gray-800 pb-4 mb-4">
-          <div className="flex gap-4 items-start">
-            {company?.logoUrl && (
-              <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="w-12 h-12 object-contain" />
-            )}
-            <div>
-              <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">{company?.name || 'Company Name'}</h1>
-              <p className="text-[11px] text-gray-600 mt-1 max-w-xs">{company?.address}</p>
-              <div className="mt-1 text-[11px] leading-tight">
-                <span className="font-bold">NTN:</span> {company?.ntn} | <span className="font-bold">STRN:</span> {company?.strn} <br/>
-                <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
-                {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
+        <div className="border-b-2 border-gray-900 pb-2 mb-2">
+          <div className="flex flex-row items-stretch justify-center relative mb-1">
+            <div className="absolute left-0 top-0 bottom-0 flex justify-start py-1">
+              {company?.logoUrl && (
+                <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[72px] w-auto object-contain" />
+              )}
+            </div>
+            <div className="flex flex-col items-center justify-between text-center min-h-[72px] pl-12">
+              <h1 className="font-serif text-[42px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-3">
+                {company?.name || 'Company Name'}
+              </h1>
+              <div className="text-[22px] whitespace-nowrap font-bold text-gray-800 uppercase tracking-widest leading-none">
+                GENERAL ORDER SUPPLIER
               </div>
             </div>
           </div>
-          <div className="text-right">
-            <h2 className="text-2xl font-bold text-gray-300 uppercase tracking-widest mb-1 leading-none">Sales Tax Invoice</h2>
-            <div className="text-[11px] space-y-0.5">
-              <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-gray-900">{invoice.invoiceNumber}</span></p>
-              <p><span className="font-semibold text-gray-600">Date:</span> <span className="text-gray-900">{new Date(invoice.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
-              <div className="mt-2 inline-block">
-                {invoice.invoiceNumber && <Barcode value={invoice.invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
-              </div>
+          <div className="flex justify-center mb-1">
+            <div className="bg-black text-white px-6 py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center rounded-sm">
+              NTN: {company?.ntn} | STRN: {company?.strn}
             </div>
+          </div>
+          <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
+            {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
+            <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
+            {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
           </div>
         </div>
 
-        {/* Customer Info */}
-        <div className="mb-3">
-          {customer ? (
-            <div className="text-[11px] leading-tight">
-              <p className="font-bold text-sm text-gray-900 mb-0.5">{customer.name}</p>
-              {(customer.customerType === 'school' || customer.isSchool) && customer.emisCode && (
-                <p><span className="font-semibold">EMIS Code:</span> {customer.emisCode}</p>
-              )}
-              {customer.customerType === 'college' && customer.institutionCode && (
-                <p><span className="font-semibold">Institution Code:</span> {customer.institutionCode}</p>
-              )}
-              {customer.customerType === 'health_unit' && customer.healthUnitCode && (
-                <p><span className="font-semibold">Health Unit Code:</span> {customer.healthUnitCode}</p>
-              )}
-              {(!customer.customerType || customer.customerType === 'other') && customer.ntn && (
-                <p><span className="font-semibold">NTN:</span> {customer.ntn}</p>
-              )}
-              <p className="text-gray-600">Phone: {customer.phone}</p>
+        {/* Customer Info & Invoice Details */}
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            {customer ? (
+              <div className="text-[16px] leading-tight">
+                {(() => {
+                  const code = customer.emisCode || customer.institutionCode || customer.healthUnitCode;
+                  return (
+                    <p className="font-bold text-gray-900 mb-0.5">
+                      {code ? `${code}, ` : ''}{customer.name}
+                    </p>
+                  );
+                })()}
+                {(!customer.customerType || customer.customerType === 'other') && customer.ntn && (
+                  <p><span className="font-semibold">NTN:</span> {customer.ntn}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-400 italic text-[11px]">Customer details unavailable.</p>
+            )}
+          </div>
+          <div className="text-right text-[11px] space-y-0.5">
+            <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-[16px] font-bold text-gray-900">{invoice.invoiceNumber}</span></p>
+            <p><span className="font-semibold text-gray-600">Date:</span> <span className="text-[16px] font-bold text-gray-900">{new Date(invoice.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
+            <div className="mt-2 inline-block">
+              {invoice.invoiceNumber && <Barcode value={invoice.invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
             </div>
-          ) : (
-            <p className="text-gray-400 italic text-[11px]">Customer details unavailable.</p>
-          )}
+          </div>
         </div>
 
         {/* Table */}
