@@ -183,9 +183,14 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                   <p className="text-gray-400 italic text-[11px]">Customer details unavailable.</p>
                 )}
               </div>
-              <div className="text-right text-[11px] space-y-0.5">
-                <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-[16px] font-bold text-gray-900">{invoice.invoiceNumber}</span></p>
-                <p className="flex justify-end items-end gap-1"><span className="font-semibold text-gray-600 leading-none">Date:</span> <span className="inline-block w-28 border-b border-gray-900 leading-none mb-0.5"></span></p>
+              <div className="flex flex-col items-end">
+                <div className="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 items-end text-right">
+                  <span className="font-semibold text-gray-600">Invoice No:</span>
+                  <span className="text-[16px] font-bold text-gray-900 leading-none">{invoice.invoiceNumber}</span>
+                  
+                  <span className="font-semibold text-gray-600 mb-0.5">Date:</span>
+                  <span className="inline-block w-28 border-b border-gray-900 leading-none mb-1"></span>
+                </div>
                 <div className="mt-2 inline-block">
                   {invoice.invoiceNumber && <Barcode value={invoice.invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
                 </div>
@@ -227,21 +232,21 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                 </tbody>
               </table>
             ) : (
-              <table className="w-full text-[13px] mb-4 relative z-10">
+              <table className="w-full text-[13px] mb-4 relative z-10 border-collapse border border-gray-800">
                 <thead>
-                  <tr className="bg-gray-800 text-white text-left text-[14px]">
-                    <th className="py-2 px-2">Description</th>
-                    <th className="py-2 px-2 text-right">Value Excluding Sales Tax</th>
-                    <th className="py-2 px-2 text-right">Sales Tax Payment</th>
-                    <th className="py-2 px-2 text-right">Value Including Sales tax</th>
+                  <tr className="bg-gray-800 text-white text-center text-[15px]">
+                    <th className="py-3 px-2 border border-gray-800">Description</th>
+                    <th className="py-3 px-2 border border-gray-800 w-[20%]">Value Excluding Sales Tax</th>
+                    <th className="py-3 px-2 border border-gray-800 w-[20%]">Sales Tax Payment</th>
+                    <th className="py-3 px-2 border border-gray-800 w-[20%]">Value Including Sales tax</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-gray-800">
-                    <td className="py-4 px-2 font-medium text-[15px]">GST against Bill No {invoice.invoiceNumber}</td>
-                    <td className="py-4 px-2 text-right font-semibold text-[15px]">{invoice.subtotal.toLocaleString()}</td>
-                    <td className="py-4 px-2 text-right font-semibold text-[15px]">{invoice.taxAmount.toLocaleString()}</td>
-                    <td className="py-4 px-2 text-right font-semibold text-[15px]">{(invoice.subtotal + invoice.taxAmount).toLocaleString()}</td>
+                  <tr>
+                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">GST against Bill No {invoice.invoiceNumber}</td>
+                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{invoice.subtotal.toLocaleString()}</td>
+                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{invoice.taxAmount.toLocaleString()}</td>
+                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{(invoice.subtotal + invoice.taxAmount).toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table>
@@ -250,22 +255,22 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
             {/* Totals & Footer Info */}
             <div className="flex justify-end items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
               <div className="w-1/2">
-                <div className="bg-gray-50 p-2 rounded border border-gray-200 text-[11px]">
-                  <div className="flex justify-between py-1">
-                    <span className="font-medium text-gray-600">Total Excl. Sales Tax:</span>
-                    <span className="font-semibold">{invoice.subtotal.toLocaleString()}</span>
+                <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
+                  <div className="flex justify-between py-1.5">
+                    <span className="font-bold text-gray-700">Total Excl. Sales Tax:</span>
+                    <span className="font-bold text-[16px]">{invoice.subtotal.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-gray-200">
-                    <span className="font-medium text-gray-600">Total Sales Tax:</span>
-                    <span className="text-[14px] font-bold">{invoice.taxAmount.toLocaleString()}</span>
+                  <div className="flex justify-between py-1.5 border-b border-gray-300">
+                    <span className="font-bold text-gray-700">Total Sales Tax:</span>
+                    <span className="text-[18px] font-bold">{invoice.taxAmount.toLocaleString()}</span>
                   </div>
                   {invoice.discount > 0 && (
-                    <div className="flex justify-between py-1 border-b border-gray-200 text-red-600">
-                      <span className="font-medium">Discount:</span>
-                      <span className="font-semibold">-{invoice.discount.toLocaleString()}</span>
+                    <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600">
+                      <span className="font-bold">Discount:</span>
+                      <span className="font-bold text-[16px]">-{invoice.discount.toLocaleString()}</span>
                     </div>
                   )}
-                  <div className="flex justify-between py-2 text-[18px] font-black text-gray-900">
+                  <div className="flex justify-between py-3 text-[22px] font-black text-gray-900">
                     <span>Total Value Incl. Tax:</span>
                     <span>PKR {invoice.netTotal.toLocaleString()}</span>
                   </div>
@@ -274,7 +279,7 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                 <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
                   <div className="text-center">
                     <div className="w-32 border-b border-gray-800 mb-1"></div>
-                    <span className="text-[10px] text-gray-600 font-semibold uppercase tracking-wider">Authorized Signatory</span>
+                    <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider">Authorized Signatory</span>
                   </div>
                 </div>
               </div>
