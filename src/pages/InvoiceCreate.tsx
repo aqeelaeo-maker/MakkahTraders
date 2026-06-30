@@ -517,7 +517,7 @@ export default function InvoiceCreate() {
             ref={invoiceRef} 
             className="print-container flex flex-col z-0 w-[210mm]"
           >
-            {['Sales Tax Invoice', 'Total Bill Invoice'].map((invoiceTitle, index) => (
+            {['SALES TAX INVOICE', 'BILL INVOICE'].map((invoiceTitle, index) => (
               <div 
                 key={index}
                 className={`bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden flex flex-col box-border ${index > 0 ? 'break-before-page mt-8 print:mt-0' : ''}`}
@@ -556,7 +556,7 @@ export default function InvoiceCreate() {
                 </div>
 
                 {/* Customer Info & Invoice Details */}
-                <div className="flex justify-between items-start mb-3 relative z-10">
+                <div className="flex justify-between items-start mb-1 relative z-10">
                   <div>
                     {selectedCustomerDetails ? (
                       <div className="text-[16px] leading-tight">
@@ -577,7 +577,6 @@ export default function InvoiceCreate() {
                     )}
                   </div>
                   <div className="text-right text-[11px] space-y-0.5">
-                    <h2 className="text-xl font-bold text-gray-400 uppercase tracking-widest mb-1 leading-none">{invoiceTitle}</h2>
                     <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-[16px] font-bold text-gray-900">{invoiceNumber}</span></p>
                     <p><span className="font-semibold text-gray-600">Date:</span> <span className="text-[16px] font-bold text-gray-900">{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
                     <div className="mt-2 inline-block">
@@ -586,8 +585,12 @@ export default function InvoiceCreate() {
                   </div>
                 </div>
 
+                <div className="text-center mb-4 mt-2 relative z-10">
+                  <h2 className="text-2xl font-black text-black uppercase tracking-widest leading-none">{invoiceTitle}</h2>
+                </div>
+
                 {/* Table */}
-                {invoiceTitle === 'Sales Tax Invoice' ? (
+                {invoiceTitle === 'SALES TAX INVOICE' ? (
                   <table className="w-full text-[13px] mb-4 relative z-10">
                     <thead>
                       <tr className="bg-gray-800 text-white text-left text-[14px]">
@@ -628,7 +631,7 @@ export default function InvoiceCreate() {
                     </thead>
                     <tbody>
                       <tr className="border-b border-gray-200">
-                        <td className="py-4 px-2 font-medium text-[15px]">GST {items.find(i => i.taxPercentage > 0)?.taxPercentage || '18'}% or 16% given in Sales Tax invoice against Bill No {invoiceNumber}</td>
+                        <td className="py-4 px-2 font-medium text-[15px]">GST {items.find(i => i.taxPercentage > 0)?.taxPercentage || '18'}% against Bill No {invoiceNumber}</td>
                         <td className="py-4 px-2 text-right font-semibold text-[15px]">{subtotal.toLocaleString()}</td>
                         <td className="py-4 px-2 text-right font-semibold text-[15px]">{totalTax.toLocaleString()}</td>
                         <td className="py-4 px-2 text-right font-semibold text-[15px]">{(subtotal + totalTax).toLocaleString()}</td>
