@@ -578,7 +578,7 @@ export default function InvoiceCreate() {
                   </div>
                   <div className="text-right text-[11px] space-y-0.5">
                     <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-[16px] font-bold text-gray-900">{invoiceNumber}</span></p>
-                    <p><span className="font-semibold text-gray-600">Date:</span> <span className="text-[16px] font-bold text-gray-900">{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
+                    <p className="flex justify-end items-end gap-1"><span className="font-semibold text-gray-600 leading-none">Date:</span> <span className="inline-block w-28 border-b border-gray-900 leading-none mb-0.5"></span></p>
                     <div className="mt-2 inline-block">
                       {invoiceNumber && <Barcode value={invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
                     </div>
@@ -586,7 +586,7 @@ export default function InvoiceCreate() {
                 </div>
 
                 <div className="text-center mb-4 mt-2 relative z-10">
-                  <h2 className="text-2xl font-black text-black uppercase tracking-widest leading-none">{invoiceTitle}</h2>
+                  <h2 className="text-4xl font-black text-black uppercase tracking-widest leading-none">{invoiceTitle}</h2>
                 </div>
 
                 {/* Table */}
@@ -606,7 +606,7 @@ export default function InvoiceCreate() {
                     </thead>
                     <tbody>
                       {items.map((item, idx) => (
-                        <tr key={idx} className="border-b border-gray-200">
+                        <tr key={idx} className="border-b border-gray-800">
                           <td className="py-2 px-2">{idx + 1}</td>
                           <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
                           <td className="py-2 px-2 text-center">{item.qty || 0}</td>
@@ -630,8 +630,8 @@ export default function InvoiceCreate() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-200">
-                        <td className="py-4 px-2 font-medium text-[15px]">GST {items.find(i => i.taxPercentage > 0)?.taxPercentage || '18'}% against Bill No {invoiceNumber}</td>
+                      <tr className="border-b border-gray-800">
+                        <td className="py-4 px-2 font-medium text-[15px]">GST against Bill No {invoiceNumber}</td>
                         <td className="py-4 px-2 text-right font-semibold text-[15px]">{subtotal.toLocaleString()}</td>
                         <td className="py-4 px-2 text-right font-semibold text-[15px]">{totalTax.toLocaleString()}</td>
                         <td className="py-4 px-2 text-right font-semibold text-[15px]">{(subtotal + totalTax).toLocaleString()}</td>
