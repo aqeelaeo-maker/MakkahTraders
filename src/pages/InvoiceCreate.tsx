@@ -515,7 +515,7 @@ export default function InvoiceCreate() {
         <div className="lg:col-span-2 overflow-x-auto bg-gray-100 p-4 rounded-lg flex justify-center">
           <div 
             ref={invoiceRef} 
-            className="print-container bg-white shadow-lg w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden z-0"
+            className="print-container bg-white shadow-lg w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden z-0 flex flex-col"
             style={{ boxSizing: 'border-box' }}
           >
             {/* Background Overlay */}
@@ -541,10 +541,8 @@ export default function InvoiceCreate() {
                   </div>
                 </div>
               </div>
-              <div className="flex justify-center mb-1">
-                <div className="bg-black text-white px-6 py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center rounded-sm">
-                  NTN: {company?.ntn} | STRN: {company?.strn}
-                </div>
+              <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center">
+                NTN: {company?.ntn} | STRN: {company?.strn}
               </div>
               <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
                 {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
@@ -637,11 +635,7 @@ export default function InvoiceCreate() {
                   </div>
                 </div>
                 
-                <div className="mt-8 pt-4 border-t border-gray-200 flex justify-between items-end">
-                  <div className="text-center">
-                    <div className="w-32 border-b border-gray-800 mb-1"></div>
-                    <span className="text-[10px] text-gray-600 font-semibold uppercase tracking-wider">Prepared By</span>
-                  </div>
+                <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
                   <div className="text-center">
                     <div className="w-32 border-b border-gray-800 mb-1"></div>
                     <span className="text-[10px] text-gray-600 font-semibold uppercase tracking-wider">Authorized Signatory</span>
