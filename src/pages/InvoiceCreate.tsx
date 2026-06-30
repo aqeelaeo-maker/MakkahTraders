@@ -512,137 +512,144 @@ export default function InvoiceCreate() {
         </div>
 
         {/* Invoice Preview (A4 Scale approximation) */}
-        <div className="lg:col-span-2 overflow-x-auto bg-gray-100 p-4 rounded-lg flex justify-center">
+        <div className="lg:col-span-2 overflow-x-auto bg-gray-100 p-4 rounded-lg flex flex-col items-center gap-8">
           <div 
             ref={invoiceRef} 
-            className="print-container bg-white shadow-lg w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden z-0 flex flex-col"
-            style={{ boxSizing: 'border-box' }}
+            className="print-container flex flex-col z-0 w-[210mm]"
           >
-            {/* Background Overlay */}
-            {company?.logoUrl && (
-              <div className="absolute inset-0 flex items-center justify-center z-[-1] opacity-5 pointer-events-none">
-                <img src={company.logoUrl} crossOrigin="anonymous" alt="Watermark" className="w-[150mm] h-[150mm] object-contain grayscale" />
-              </div>
-            )}
-            {/* Header */}
-            <div className="border-b-2 border-gray-900 pb-2 mb-2">
-              <div className="flex flex-row items-stretch justify-center relative mb-1">
-                <div className="absolute left-0 top-0 bottom-0 flex justify-start -mt-2">
-                  {company?.logoUrl && (
-                    <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[96px] w-auto object-contain" />
-                  )}
-                </div>
-                <div className="flex flex-col items-center justify-between text-center min-h-[72px] pl-12">
-                  <h1 className="font-serif text-[42px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-3">
-                    {company?.name || 'Company Name'}
-                  </h1>
-                  <div className="text-[22px] whitespace-nowrap font-bold text-gray-800 uppercase tracking-widest leading-none">
-                    GENERAL ORDER SUPPLIER
+            {['Sales Tax Invoice', 'Total Bill Invoice'].map((invoiceTitle, index) => (
+              <div 
+                key={index}
+                className={`bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden flex flex-col box-border ${index > 0 ? 'break-before-page mt-8 print:mt-0' : ''}`}
+              >
+                {/* Background Overlay */}
+                {company?.logoUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center z-[-1] opacity-5 pointer-events-none">
+                    <img src={company.logoUrl} crossOrigin="anonymous" alt="Watermark" className="w-[150mm] h-[150mm] object-contain grayscale" />
+                  </div>
+                )}
+                {/* Header */}
+                <div className="border-b-2 border-gray-900 pb-2 mb-2">
+                  <div className="flex flex-row items-stretch justify-center relative mb-1">
+                    <div className="absolute left-0 top-0 bottom-0 flex justify-start -mt-2">
+                      {company?.logoUrl && (
+                        <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[96px] w-auto object-contain" />
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center justify-between text-center min-h-[72px] pl-12">
+                      <h1 className="font-serif text-[52px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-3">
+                        {company?.name || 'Company Name'}
+                      </h1>
+                      <div className="text-[22px] whitespace-nowrap font-bold text-gray-800 uppercase tracking-widest leading-none">
+                        GENERAL ORDER SUPPLIER
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center pl-12">
+                    NTN: {company?.ntn} | STRN: {company?.strn}
+                  </div>
+                  <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
+                    {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
+                    <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
+                    {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
                   </div>
                 </div>
-              </div>
-              <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center pl-12">
-                NTN: {company?.ntn} | STRN: {company?.strn}
-              </div>
-              <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
-                {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
-                <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
-                {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
-              </div>
-            </div>
 
-            {/* Customer Info & Invoice Details */}
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                {selectedCustomerDetails ? (
-                  <div className="text-[16px] leading-tight">
-                    {(() => {
-                      const code = selectedCustomerDetails.emisCode || selectedCustomerDetails.institutionCode || selectedCustomerDetails.healthUnitCode;
-                      return (
-                        <p className="font-bold text-gray-900 mb-0.5">
-                          {code ? `${code}, ` : ''}{selectedCustomerDetails.name}
-                        </p>
-                      );
-                    })()}
-                    {(!selectedCustomerDetails.customerType || selectedCustomerDetails.customerType === 'other') && selectedCustomerDetails.ntn && (
-                      <p><span className="font-semibold">NTN:</span> {selectedCustomerDetails.ntn}</p>
+                {/* Customer Info & Invoice Details */}
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    {selectedCustomerDetails ? (
+                      <div className="text-[16px] leading-tight">
+                        {(() => {
+                          const code = selectedCustomerDetails.emisCode || selectedCustomerDetails.institutionCode || selectedCustomerDetails.healthUnitCode;
+                          return (
+                            <p className="font-bold text-gray-900 mb-0.5">
+                              {code ? `${code}, ` : ''}{selectedCustomerDetails.name}
+                            </p>
+                          );
+                        })()}
+                        {(!selectedCustomerDetails.customerType || selectedCustomerDetails.customerType === 'other') && selectedCustomerDetails.ntn && (
+                          <p><span className="font-semibold">NTN:</span> {selectedCustomerDetails.ntn}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 italic text-[11px]">Select a customer...</p>
                     )}
                   </div>
-                ) : (
-                  <p className="text-gray-400 italic text-[11px]">Select a customer...</p>
-                )}
-              </div>
-              <div className="text-right text-[11px] space-y-0.5">
-                <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-[16px] font-bold text-gray-900">{invoiceNumber}</span></p>
-                <p><span className="font-semibold text-gray-600">Date:</span> <span className="text-[16px] font-bold text-gray-900">{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
-                <div className="mt-2 inline-block">
-                  {invoiceNumber && <Barcode value={invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
-                </div>
-              </div>
-            </div>
-
-            {/* Table */}
-            <table className="w-full text-[13px] mb-4">
-              <thead>
-                <tr className="bg-gray-800 text-white text-left text-[14px]">
-                  <th className="py-2 px-2">Sr.</th>
-                  <th className="py-2 px-2">Description</th>
-                  <th className="py-2 px-2 text-center">Qty</th>
-                  <th className="py-2 px-2 text-right">Unit Price</th>
-                  <th className="py-2 px-2 text-right">Total Excl. Tax</th>
-                  <th className="py-2 px-2 text-center">Tax Rate</th>
-                  <th className="py-2 px-2 text-right">Sales Tax</th>
-                  <th className="py-2 px-2 text-right">Total Incl. Tax</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => (
-                  <tr key={idx} className="border-b border-gray-200">
-                    <td className="py-2 px-2">{idx + 1}</td>
-                    <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
-                    <td className="py-2 px-2 text-center">{item.qty || 0}</td>
-                    <td className="py-2 px-2 text-right">{(item.unitPrice || 0).toLocaleString()}</td>
-                    <td className="py-2 px-2 text-right">{(item.total || 0).toLocaleString()}</td>
-                    <td className="py-2 px-2 text-center">{item.taxPercentage || 0}%</td>
-                    <td className="py-2 px-2 text-right">{(item.tax || 0).toLocaleString()}</td>
-                    <td className="py-2 px-2 text-right font-semibold">{(item.grandTotal || 0).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Totals & Footer Info */}
-            <div className="flex justify-end items-start mt-auto pt-4 border-t border-gray-200">
-              <div className="w-1/2">
-                <div className="bg-gray-50 p-2 rounded border border-gray-200 text-[11px]">
-                  <div className="flex justify-between py-1">
-                    <span className="font-medium text-gray-600">Total Excl. Sales Tax:</span>
-                    <span className="font-semibold">{subtotal.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-gray-200">
-                    <span className="font-medium text-gray-600">Total Sales Tax:</span>
-                    <span className="font-semibold">{totalTax.toLocaleString()}</span>
-                  </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between py-1 border-b border-gray-200 text-red-600">
-                      <span className="font-medium">Discount:</span>
-                      <span className="font-semibold">-{discount.toLocaleString()}</span>
+                  <div className="text-right text-[11px] space-y-0.5">
+                    <h2 className="text-xl font-bold text-gray-400 uppercase tracking-widest mb-1 leading-none">{invoiceTitle}</h2>
+                    <p><span className="font-semibold text-gray-600">Invoice No:</span> <span className="text-[16px] font-bold text-gray-900">{invoiceNumber}</span></p>
+                    <p><span className="font-semibold text-gray-600">Date:</span> <span className="text-[16px] font-bold text-gray-900">{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
+                    <div className="mt-2 inline-block">
+                      {invoiceNumber && <Barcode value={invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
                     </div>
-                  )}
-                  <div className="flex justify-between py-2 text-sm font-bold text-gray-900">
-                    <span>Total Value Incl. Tax:</span>
-                    <span>PKR {netTotal.toLocaleString()}</span>
                   </div>
                 </div>
-                
-                <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
-                  <div className="text-center">
-                    <div className="w-32 border-b border-gray-800 mb-1"></div>
-                    <span className="text-[10px] text-gray-600 font-semibold uppercase tracking-wider">Authorized Signatory</span>
+
+                {/* Table */}
+                <table className="w-full text-[13px] mb-4">
+                  <thead>
+                    <tr className="bg-gray-800 text-white text-left text-[14px]">
+                      <th className="py-2 px-2">Sr.</th>
+                      <th className="py-2 px-2">Description</th>
+                      <th className="py-2 px-2 text-center">Qty</th>
+                      <th className="py-2 px-2 text-right">Unit Price</th>
+                      <th className="py-2 px-2 text-right">Total Excl. Tax</th>
+                      <th className="py-2 px-2 text-center">Tax Rate</th>
+                      <th className="py-2 px-2 text-right">Sales Tax</th>
+                      <th className="py-2 px-2 text-right">Total Incl. Tax</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={idx} className="border-b border-gray-200">
+                        <td className="py-2 px-2">{idx + 1}</td>
+                        <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
+                        <td className="py-2 px-2 text-center">{item.qty || 0}</td>
+                        <td className="py-2 px-2 text-right">{(item.unitPrice || 0).toLocaleString()}</td>
+                        <td className="py-2 px-2 text-right">{(item.total || 0).toLocaleString()}</td>
+                        <td className="py-2 px-2 text-center">{item.taxPercentage || 0}%</td>
+                        <td className="py-2 px-2 text-right">{(item.tax || 0).toLocaleString()}</td>
+                        <td className="py-2 px-2 text-right font-semibold">{(item.grandTotal || 0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Totals & Footer Info */}
+                <div className="flex justify-end items-start mt-auto pt-4 border-t border-gray-200">
+                  <div className="w-1/2">
+                    <div className="bg-gray-50 p-2 rounded border border-gray-200 text-[11px]">
+                      <div className="flex justify-between py-1">
+                        <span className="font-medium text-gray-600">Total Excl. Sales Tax:</span>
+                        <span className="font-semibold">{subtotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-gray-200">
+                        <span className="font-medium text-gray-600">Total Sales Tax:</span>
+                        <span className="text-[14px] font-bold">{totalTax.toLocaleString()}</span>
+                      </div>
+                      {discount > 0 && (
+                        <div className="flex justify-between py-1 border-b border-gray-200 text-red-600">
+                          <span className="font-medium">Discount:</span>
+                          <span className="font-semibold">-{discount.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between py-2 text-[18px] font-black text-gray-900">
+                        <span>Total Value Incl. Tax:</span>
+                        <span>PKR {netTotal.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
+                      <div className="text-center">
+                        <div className="w-32 border-b border-gray-800 mb-1"></div>
+                        <span className="text-[10px] text-gray-600 font-semibold uppercase tracking-wider">Authorized Signatory</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
