@@ -184,12 +184,12 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                 )}
               </div>
               <div className="flex flex-col items-end">
-                <div className="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 items-end text-right">
+                <div className="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 items-end text-left">
                   <span className="font-semibold text-gray-600">Invoice No:</span>
-                  <span className="text-[16px] font-bold text-gray-900 leading-none">{invoice.invoiceNumber}</span>
+                  <span className="text-[16px] font-bold text-gray-900 leading-none text-right">{invoice.invoiceNumber}</span>
                   
                   <span className="font-semibold text-gray-600 mb-0.5">Date:</span>
-                  <span className="inline-block w-28 border-b border-gray-900 leading-none mb-1"></span>
+                  <span className="inline-block w-28 border-b border-gray-900 leading-none mb-1 justify-self-end"></span>
                 </div>
                 <div className="mt-2 inline-block">
                   {invoice.invoiceNumber && <Barcode value={invoice.invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
