@@ -647,23 +647,23 @@ export default function InvoiceCreate() {
 
                 {/* Totals & Footer Info */}
                 <div className="flex justify-end items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
-                  <div className="w-1/2">
+                  <div className="w-[60%]">
                     <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
-                      <div className="flex justify-between py-1.5">
-                        <span className="font-bold text-gray-700">Total Excl. Sales Tax:</span>
-                        <span className="font-bold text-[16px]">{subtotal.toLocaleString()}</span>
+                      <div className="flex justify-between py-1.5 items-center">
+                        <span className="font-bold text-gray-700 text-[18px]">Total Excl. Sales Tax:</span>
+                        <span className="font-bold text-[20px]">{subtotal.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between py-1.5 border-b border-gray-300">
-                        <span className="font-bold text-gray-700">Total Sales Tax:</span>
-                        <span className="text-[18px] font-bold">{totalTax.toLocaleString()}</span>
+                      <div className="flex justify-between py-1.5 border-b border-gray-300 items-center">
+                        <span className="font-bold text-gray-700 text-[18px]">Total Sales Tax:</span>
+                        <span className="font-bold text-[20px]">{totalTax.toLocaleString()}</span>
                       </div>
                       {discount > 0 && (
-                        <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600">
-                          <span className="font-bold">Discount:</span>
-                          <span className="font-bold text-[16px]">-{discount.toLocaleString()}</span>
+                        <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600 items-center">
+                          <span className="font-bold text-[18px]">Discount:</span>
+                          <span className="font-bold text-[20px]">-{discount.toLocaleString()}</span>
                         </div>
                       )}
-                      <div className="flex justify-between py-3 text-[22px] font-black text-gray-900">
+                      <div className="flex justify-between py-3 text-[18px] font-black text-gray-900 items-center">
                         <span>Total Value Incl. Tax:</span>
                         <span>PKR {netTotal.toLocaleString()}</span>
                       </div>
