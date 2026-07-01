@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, getDocs, orderBy, addDoc, doc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Customer, Product, Invoice, InvoiceItem, CompanyProfile } from '../types';
-import { Plus, Trash2, Save, Printer, Download, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Save, Printer, Download, ArrowLeft, Pencil } from 'lucide-react';
 import { useNavigate, Link, useParams, useSearchParams } from 'react-router';
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
@@ -37,6 +37,7 @@ export default function InvoiceCreate() {
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
   const productDropdownRef = useRef<HTMLDivElement>(null);
   const [currentItem, setCurrentItem] = useState<Partial<InvoiceItem>>({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 });
+  const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -176,16 +177,36 @@ export default function InvoiceCreate() {
       alert("Please select a product");
       return;
     }
-    setItems([...items, { ...currentItem, id: Math.random().toString() }]);
+    if (editItemIndex !== null) {
+      const newItems = [...items];
+      newItems[editItemIndex] = { ...currentItem, id: newItems[editItemIndex].id };
+      setItems(newItems);
+      setEditItemIndex(null);
+    } else {
+      setItems([...items, { ...currentItem, id: Math.random().toString() }]);
+    }
     setCurrentItem({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 });
     setProductSearchTerm('');
     setIsProductDropdownOpen(false);
+  };
+
+  const editItemRow = (index: number) => {
+    setCurrentItem(items[index]);
+    setEditItemIndex(index);
+    setProductSearchTerm(items[index].productName || '');
   };
 
   const removeItemRow = (index: number) => {
     const newItems = [...items];
     newItems.splice(index, 1);
     setItems(newItems);
+    if (editItemIndex === index) {
+      setEditItemIndex(null);
+      setCurrentItem({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 });
+      setProductSearchTerm('');
+    } else if (editItemIndex !== null && index < editItemIndex) {
+      setEditItemIndex(editItemIndex - 1);
+    }
   };
 
   const handleProductSelect = (productId: string) => {
@@ -325,10 +346,11 @@ export default function InvoiceCreate() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col gap-6">
         {/* Editor Form */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
+        <div className="w-full space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col h-full">
             <h3 className="text-xs font-bold uppercase text-slate-400 tracking-widest border-b border-slate-100 pb-2">Document Details</h3>
             <div className="relative" ref={customerDropdownRef}>
               <label className="block text-xs font-bold text-slate-600 mb-1">Customer</label>
@@ -400,12 +422,12 @@ export default function InvoiceCreate() {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col h-full">
             <div className="border-b border-slate-100 pb-2">
               <h3 className="text-xs font-bold uppercase text-slate-400 tracking-widest">Items</h3>
             </div>
             
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="space-y-2 flex-1 max-h-96 overflow-y-auto">
               {items.map((item, index) => (
                 <div key={item.id} className="flex justify-between items-center border border-slate-100 bg-slate-50/50 rounded-lg p-2 group">
                   <div className="text-sm">
@@ -414,6 +436,12 @@ export default function InvoiceCreate() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-bold text-slate-800">Rs {item.total?.toFixed(2)}</span>
+                    <button 
+                      onClick={() => editItemRow(index)}
+                      className="text-indigo-400 hover:text-indigo-600 transition-colors p-1"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
                     <button 
                       onClick={() => removeItemRow(index)}
                       className="text-red-400 hover:text-red-600 transition-colors p-1"
@@ -498,21 +526,22 @@ export default function InvoiceCreate() {
               </div>
               
               <button onClick={addItemRow} type="button" className="w-full mt-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-indigo-100 transition-colors flex justify-center items-center">
-                <Plus className="w-4 h-4 mr-2" /> Add Product
+                <Plus className="w-4 h-4 mr-2" /> {editItemIndex !== null ? 'Update Product' : 'Add Product'}
               </button>
             </div>
 
-            <div className="border-t border-slate-100 pt-4 space-y-2">
+            <div className="border-t border-slate-100 pt-4 space-y-2 mt-auto">
               <div className="flex justify-between text-sm items-center">
                 <span className="text-xs font-bold text-slate-500 uppercase">Discount</span>
                 <input type="number" value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)} className="w-24 text-right border-slate-200 rounded-lg border px-2 py-1 text-sm bg-slate-50 focus:outline-none" />
               </div>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Invoice Preview (A4 Scale approximation) */}
-        <div className="lg:col-span-2 overflow-x-auto bg-gray-100 p-4 rounded-lg flex flex-col items-center gap-8">
+        <div className="w-full overflow-x-auto bg-gray-100 p-4 rounded-lg flex flex-col items-center gap-8">
           <div 
             ref={invoiceRef} 
             className="print-container flex flex-col z-0 w-[210mm]"
