@@ -577,12 +577,12 @@ export default function InvoiceCreate() {
                     )}
                   </div>
                   <div className="flex flex-col items-end">
-                    <div className="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 items-end text-left">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 items-end text-left min-w-[200px]">
                       <span className="font-semibold text-gray-600">Invoice No:</span>
                       <span className="text-[16px] font-bold text-gray-900 leading-none text-right">{invoiceNumber}</span>
                       
                       <span className="font-semibold text-gray-600 mb-0.5">Date:</span>
-                      <span className="inline-block w-28 border-b border-gray-900 leading-none mb-1 justify-self-end"></span>
+                      <span className="border-b border-gray-900 leading-none mb-1 w-full"></span>
                     </div>
                     <div className="mt-2 inline-block">
                       {invoiceNumber && <Barcode value={invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
@@ -670,8 +670,8 @@ export default function InvoiceCreate() {
                     </div>
                     
                     <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
-                      <div className="text-center">
-                        <div className="w-32 border-b border-gray-800 mb-1"></div>
+                      <div className="inline-block text-center">
+                        <div className="w-full border-b border-gray-800 mb-1"></div>
                         <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider">Authorized Signatory</span>
                       </div>
                     </div>
