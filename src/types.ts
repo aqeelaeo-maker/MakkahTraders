@@ -21,6 +21,7 @@ export interface CompanyProfile {
   email: string;
   website: string;
   bankDetails: string;
+  printOnLetterPad?: boolean;
 }
 
 export interface Customer {

@@ -552,37 +552,47 @@ export default function InvoiceCreate() {
                 className={`bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden flex flex-col box-border ${index > 0 ? 'break-before-page mt-8 print:mt-0' : ''}`}
               >
                 {/* Background Overlay */}
-                {company?.logoUrl && (
+                {!company?.printOnLetterPad && company?.logoUrl && (
                   <div className="absolute inset-0 flex items-center justify-center z-0 opacity-10 pointer-events-none">
                     <img src={company.logoUrl} crossOrigin="anonymous" alt="Watermark" className="w-[150mm] h-[150mm] object-contain grayscale" />
                   </div>
                 )}
                 {/* Header */}
-                <div className="border-b-2 border-gray-900 pb-2 mb-2 relative z-10">
-                  <div className="flex flex-row items-stretch justify-center relative mb-1">
-                    <div className="absolute left-0 top-0 bottom-0 flex justify-start -mt-2">
-                      {company?.logoUrl && (
-                        <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[96px] w-auto object-contain" />
-                      )}
-                    </div>
-                    <div className="flex flex-col items-center justify-between text-center min-h-[72px] pl-12">
-                      <h1 className="font-serif text-[52px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-3">
-                        {company?.name || 'Company Name'}
-                      </h1>
-                      <div className="text-[22px] whitespace-nowrap font-bold text-gray-800 uppercase tracking-widest leading-none">
-                        GENERAL ORDER SUPPLIER
+                {!company?.printOnLetterPad && (
+                  <div className="border-b-2 border-gray-900 pb-2 mb-2 relative z-10">
+                    <div className="flex flex-row items-stretch justify-center relative mb-1">
+                      <div className="absolute left-0 top-0 bottom-0 flex justify-start -mt-2">
+                        {company?.logoUrl && (
+                          <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[96px] w-auto object-contain" />
+                        )}
+                      </div>
+                      <div className="flex flex-col items-center justify-between text-center min-h-[72px] pl-12">
+                        <h1 className="font-serif text-[52px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-3">
+                          {company?.name || 'Company Name'}
+                        </h1>
+                        <div className="text-[22px] whitespace-nowrap font-bold text-gray-800 uppercase tracking-widest leading-none">
+                          GENERAL ORDER SUPPLIER
+                        </div>
                       </div>
                     </div>
+                    <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center pl-12">
+                      NTN: {company?.ntn} | STRN: {company?.strn}
+                    </div>
+                    <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
+                      {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
+                      <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
+                      {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
+                    </div>
                   </div>
-                  <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center pl-12">
-                    NTN: {company?.ntn} | STRN: {company?.strn}
+                )}
+                {/* Title if Letter Pad */}
+                {company?.printOnLetterPad && (
+                  <div className="pb-2 mb-4 relative z-10 mt-20">
+                    <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center">
+                      {invoiceTitle}
+                    </div>
                   </div>
-                  <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
-                    {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
-                    <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
-                    {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
-                  </div>
-                </div>
+                )}
 
                 {/* Customer Info & Invoice Details */}
                 <div className="flex justify-between items-start mb-1 relative z-10">

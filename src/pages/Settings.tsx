@@ -191,6 +191,19 @@ export default function Settings() {
               <label className="block text-xs font-bold text-slate-600 mb-1">Bank Details</label>
               <textarea rows={2} required value={profile.bankDetails} onChange={e => setProfile({...profile, bankDetails: e.target.value})} placeholder="Bank Name, Account Title, IBAN" className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
             </div>
+
+            <div className="sm:col-span-2 flex items-center">
+              <input 
+                type="checkbox" 
+                id="printOnLetterPad" 
+                checked={profile.printOnLetterPad || false} 
+                onChange={e => setProfile({...profile, printOnLetterPad: e.target.checked})} 
+                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500" 
+              />
+              <label htmlFor="printOnLetterPad" className="ml-2 block text-sm font-medium text-slate-700">
+                Print on Letter Pad (Hide company header/footer when printing)
+              </label>
+            </div>
           </div>
 
           <div className="pt-5 border-t border-slate-100">
