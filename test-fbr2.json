@@ -1,0 +1,36 @@
+{
+  "invoiceType": "Sale Invoice",
+  "invoiceDate": "2026-07-07",
+  "sellerNTNCNIC": "1234567890123",
+  "sellerBusinessName": "Test Company",
+  "sellerProvince": "Punjab",
+  "sellerAddress": "Test Address",
+  "buyerNTNCNIC": "0000000000000",
+  "buyerBusinessName": "Test Buyer",
+  "buyerProvince": "Punjab",
+  "buyerAddress": "Buyer Address",
+  "buyerRegistrationType": "Unregistered Person",
+  "invoiceRefNo": "INV-001",
+  "scenarioId": "SN000",
+  "items": [
+    {
+      "hsCode": "0000.0000",
+      "productDescription": "Test Item",
+      "rate": "18%",
+      "uoM": "Nos",
+      "quantity": 1,
+      "totalValues": 118,
+      "valueSalesExcludingST": 100,
+      "fixedNotifiedValueOrRetailPrice": 0,
+      "salesTaxApplicable": 18,
+      "salesTaxWithheldAtSource": 0,
+      "extraTax": "",
+      "furtherTax": 0,
+      "sroScheduleNo": "",
+      "fedPayable": 0,
+      "discount": 0,
+      "saleType": "",
+      "sroItemSerialNo": ""
+    }
+  ]
+}
