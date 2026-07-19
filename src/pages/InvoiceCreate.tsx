@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, getDocs, orderBy, addDoc, doc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Customer, Product, Invoice, InvoiceItem, CompanyProfile } from '../types';
-import { Plus, Trash2, Save, Printer, Download, ArrowLeft, Pencil } from 'lucide-react';
+import { Plus, Trash2, Save, Printer, Download, ArrowLeft, Pencil, X } from 'lucide-react';
 import { useNavigate, Link, useParams, useSearchParams, useOutletContext } from 'react-router';
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
@@ -217,6 +217,7 @@ export default function InvoiceCreate() {
   const [loading, setLoading] = useState(false);
   const [fbrStatus, setFbrStatus] = useState<'Pending' | 'Submitted' | 'Failed' | undefined>(undefined);
   const [fbrInvoiceNo, setFbrInvoiceNo] = useState<string | undefined>(undefined);
+  const [fbrModalData, setFbrModalData] = useState<{submitted: any, response: any} | null>(null);
   
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -567,7 +568,7 @@ export default function InvoiceCreate() {
       
       const resData = await response.json();
       
-      alert(`Submitted JSON:\n${JSON.stringify(objinvoice, null, 2)}\n\nResponse:\n${JSON.stringify(resData, null, 2)}`);
+      setFbrModalData({ submitted: objinvoice, response: resData });
       
     } catch (err: any) {
       alert("Error: " + err.message);
@@ -861,6 +862,49 @@ export default function InvoiceCreate() {
           </div>
         </div>
       </div>
+
+      {/* FBR Modal */}
+      {fbrModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="text-lg font-bold text-slate-800">FBR Submission Details</h3>
+              <button 
+                onClick={() => setFbrModalData(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-left">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-2">Submitted JSON Data</h4>
+                <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-left">
+                  <pre className="text-xs text-emerald-400 font-mono text-left">
+                    {JSON.stringify(fbrModalData.submitted, null, 2)}
+                  </pre>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-2">Response Data</h4>
+                <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-left">
+                  <pre className="text-xs text-blue-400 font-mono text-left">
+                    {JSON.stringify(fbrModalData.response, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button 
+                onClick={() => setFbrModalData(null)}
+                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
