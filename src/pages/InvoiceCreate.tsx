@@ -519,9 +519,11 @@ export default function InvoiceCreate() {
   }
 
   const submitToFBR = async () => {
+    console.log("Submitting to FBR...");
     setLoading(true);
+    let objinvoice: any = null;
     try {
-      const objinvoice = {
+      objinvoice = {
         "invoiceType": "Sale Invoice",
         "invoiceDate": "2025-06-14",
         "sellerNTNCNIC": company?.ntn?.replace(/[^0-9]/g, '') || "8885801",
@@ -571,7 +573,7 @@ export default function InvoiceCreate() {
       setFbrModalData({ submitted: objinvoice, response: resData });
       
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setFbrModalData({ submitted: objinvoice || null, response: { error: err.message } });
     } finally {
       setLoading(false);
     }
@@ -622,6 +624,7 @@ export default function InvoiceCreate() {
           </button>
           
           <button 
+            type="button"
             onClick={submitToFBR}
             disabled={loading}
             className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-colors flex items-center disabled:opacity-50"
@@ -865,7 +868,7 @@ export default function InvoiceCreate() {
 
       {/* FBR Modal */}
       {fbrModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="text-lg font-bold text-slate-800">FBR Submission Details</h3>
