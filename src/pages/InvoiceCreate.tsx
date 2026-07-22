@@ -527,41 +527,75 @@ export default function InvoiceCreate() {
     setLoading(true);
     let objinvoice: any = null;
     try {
+      const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+
+      const rawNTN = selectedCustomer?.ntn ? selectedCustomer.ntn.replace(/[^0-9]/g, '') : '';
+      const buyerNTNCNIC = rawNTN || "1000000000056";
+      const buyerBusinessName = selectedCustomer?.name || "FERTILIZER MANUFAC IRS NEW";
+      const buyerProvince = selectedCustomer?.city || "Sindh";
+      const buyerAddress = selectedCustomer?.address || "Karachi";
+      const buyerRegistrationType = selectedCustomer?.ntn ? "Registered" : "Unregistered";
+
+      const formattedDate = date ? new Date(date).toISOString().split('T')[0] : "2025-06-14";
+
+      const fbrItems = items.length > 0 ? items.map(item => {
+        const prod = products.find(p => p.id === item.productId);
+        return {
+          "hsCode": prod?.code || "0101.2100",
+          "productDescription": item.productName || prod?.name || "TEST",
+          "rate": `${item.taxPercentage ?? 18}%`,
+          "uoM": prod?.unit || "Numbers, pieces, units",
+          "quantity": item.qty || 1,
+          "totalValues": item.grandTotal || 0,
+          "valueSalesExcludingST": item.total || 0,
+          "salesTaxApplicable": item.tax || 0,
+          "fixedNotifiedValueOrRetailPrice": 0,
+          "salesTaxWithheldAtSource": 0,
+          "extraTax": 0,
+          "furtherTax": 0,
+          "sroScheduleNo": "",
+          "fedPayable": 0,
+          "discount": 0,
+          "saleType": "Services (FED in ST Mode)",
+          "sroItemSerialNo": ""
+        };
+      }) : [
+        {
+          "hsCode": "0101.2100",
+          "productDescription": "TEST",
+          "rate": "8%",
+          "uoM": "Numbers, pieces, units",
+          "quantity": 20,
+          "totalValues": 0,
+          "valueSalesExcludingST": 1000,
+          "salesTaxApplicable": 80,
+          "fixedNotifiedValueOrRetailPrice": 0,
+          "salesTaxWithheldAtSource": 0,
+          "extraTax": 0,
+          "furtherTax": 0,
+          "sroScheduleNo": "",
+          "fedPayable": 0,
+          "discount": 0,
+          "saleType": "Services (FED in ST Mode)",
+          "sroItemSerialNo": ""
+        }
+      ];
+
       objinvoice = {
         "invoiceType": "Sale Invoice",
-        "invoiceDate": "2025-06-14",
+        "invoiceDate": formattedDate,
         "sellerNTNCNIC": company?.ntn?.replace(/[^0-9]/g, '') || "8885801",
         "sellerBusinessName": company?.name || "Company 8",
         "sellerProvince": "Sindh",
         "sellerAddress": company?.address || "Karachi",
-        "buyerNTNCNIC": "1000000000056",
-        "buyerBusinessName": "FERTILIZER MANUFAC IRS NEW",
-        "buyerProvince": "Sindh",
-        "buyerAddress": "Karachi",
+        "buyerNTNCNIC": buyerNTNCNIC,
+        "buyerBusinessName": buyerBusinessName,
+        "buyerProvince": buyerProvince,
+        "buyerAddress": buyerAddress,
         "invoiceRefNo": invoiceNumber || "SI-20250421-001",
         "scenarioId": "SN018",
-        "buyerRegistrationType": "Unregistered",
-        "items": [
-          {
-            "hsCode": "0101.2100",
-            "productDescription": "TEST",
-            "rate": "8%",
-            "uoM": "Numbers, pieces, units",
-            "quantity": 20,
-            "totalValues": 0,
-            "valueSalesExcludingST": 1000,
-            "salesTaxApplicable": 80,
-            "fixedNotifiedValueOrRetailPrice": 0,
-            "salesTaxWithheldAtSource": 0,
-            "extraTax": 0,
-            "furtherTax": 0,
-            "sroScheduleNo": "",
-            "fedPayable": 0,
-            "discount": 0,
-            "saleType": "Services (FED in ST Mode)",
-            "sroItemSerialNo": ""
-          }
-        ]
+        "buyerRegistrationType": buyerRegistrationType,
+        "items": fbrItems
       };
 
       const response = await fetch("/api/fbr/invoice", {
