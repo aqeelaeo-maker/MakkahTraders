@@ -584,7 +584,7 @@ export default function InvoiceCreate() {
       objinvoice = {
         "invoiceType": "Sale Invoice",
         "invoiceDate": formattedDate,
-        "sellerNTNCNIC": company?.ntn?.replace(/[^0-9]/g, '') || "8885801",
+        "sellerNTNCNIC": "3710597302557",
         "sellerBusinessName": company?.name || "Company 8",
         "sellerProvince": "Sindh",
         "sellerAddress": company?.address || "Karachi",
