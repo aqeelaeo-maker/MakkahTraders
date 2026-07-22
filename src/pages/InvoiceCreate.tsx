@@ -218,6 +218,7 @@ export default function InvoiceCreate() {
   const [fbrStatus, setFbrStatus] = useState<'Pending' | 'Submitted' | 'Failed' | undefined>(undefined);
   const [fbrInvoiceNo, setFbrInvoiceNo] = useState<string | undefined>(undefined);
   const [fbrModalData, setFbrModalData] = useState<{submitted: any, response: any} | null>(null);
+  const [invoiceCreatedBy, setInvoiceCreatedBy] = useState<string | undefined>(undefined);
   
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -335,6 +336,7 @@ export default function InvoiceCreate() {
           setDate(invData.date);
           setFbrStatus(invData.fbrStatus);
           setFbrInvoiceNo(invData.fbrInvoiceNo);
+          setInvoiceCreatedBy(invData.createdBy);
         }
       } else {
         // Create mode
@@ -488,7 +490,9 @@ export default function InvoiceCreate() {
         discount,
         taxAmount: totalTax,
         netTotal,
-        createdBy: activeSubUser?.username || auth.currentUser?.uid || 'unknown',
+        createdBy: (id && invoiceCreatedBy) 
+          ? invoiceCreatedBy 
+          : (activeSubUser?.username || (activeSubUser?.id === 'user2' || activeSubUser?.role === 'staff' ? 'user2' : 'user1')),
         status,
         fbrStatus,
         fbrInvoiceNo

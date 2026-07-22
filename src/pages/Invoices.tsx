@@ -8,7 +8,7 @@ import { Link, useOutletContext } from 'react-router';
 import HiddenInvoicePrinter from '../components/HiddenInvoicePrinter';
 
 export default function Invoices() {
-  const { activeSubUser } = useOutletContext<any>() || {};
+  const { activeSubUser, companyProfile } = useOutletContext<any>() || {};
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,7 +33,12 @@ export default function Invoices() {
       const snapshot = await getDocs(q);
       let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
       if (activeSubUser?.role === 'staff') {
-        data = data.filter(inv => inv.createdBy === activeSubUser.username);
+        const staffUsername = activeSubUser.username || 'user2';
+        data = data.filter(inv => 
+          inv.createdBy === staffUsername || 
+          inv.createdBy === 'user2' || 
+          inv.createdBy === activeSubUser.id
+        );
       }
       data.sort((a, b) => (b.invoiceNumber || '').localeCompare(a.invoiceNumber || '', undefined, { numeric: true }));
       setInvoices(data);
@@ -42,6 +47,37 @@ export default function Invoices() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getCreatedByDisplay = (inv: Invoice) => {
+    const u1 = companyProfile?.subUsers?.find((u: any) => u.id === 'user1' || u.role === 'owner');
+    const u2 = companyProfile?.subUsers?.find((u: any) => u.id === 'user2' || u.role === 'staff');
+
+    const u1Name = u1?.username || 'user1';
+    const u2Name = u2?.username || 'user2';
+
+    if (
+      inv.createdBy === 'user2' || 
+      inv.createdBy === 'staff' || 
+      (u2?.username && inv.createdBy === u2.username)
+    ) {
+      return u2Name;
+    }
+    
+    if (
+      inv.createdBy === 'user1' || 
+      inv.createdBy === 'owner' || 
+      inv.createdBy === 'Owner' || 
+      (u1?.username && inv.createdBy === u1.username)
+    ) {
+      return u1Name;
+    }
+
+    if (inv.createdBy === auth.currentUser?.uid || !inv.createdBy || inv.createdBy === 'unknown') {
+      return u1Name;
+    }
+
+    return inv.createdBy;
   };
 
   const confirmDelete = async (id: string) => {
@@ -144,7 +180,7 @@ export default function Invoices() {
                       </div>
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap">
-                      <div className="text-sm text-slate-600 font-medium capitalize">{invoice.createdBy === 'unknown' || !invoice.createdBy || invoice.createdBy === auth.currentUser?.uid ? 'Owner' : invoice.createdBy}</div>
+                      <div className="text-sm text-slate-600 font-medium capitalize">{getCreatedByDisplay(invoice)}</div>
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap text-right">
                       <div className="font-bold text-slate-900">{invoice.netTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>

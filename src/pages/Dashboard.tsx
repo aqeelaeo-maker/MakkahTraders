@@ -36,7 +36,12 @@ export default function Dashboard() {
         });
 
         if (activeSubUser?.role === 'staff') {
-          fetchedInvoices = fetchedInvoices.filter(inv => inv.createdBy === activeSubUser.username);
+          const staffUsername = activeSubUser.username || 'user2';
+          fetchedInvoices = fetchedInvoices.filter(inv => 
+            inv.createdBy === staffUsername || 
+            inv.createdBy === 'user2' || 
+            inv.createdBy === activeSubUser.id
+          );
         }
 
         fetchedInvoices.sort((a, b) => b.date - a.date);
