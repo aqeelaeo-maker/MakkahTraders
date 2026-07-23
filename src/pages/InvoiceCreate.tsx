@@ -607,7 +607,18 @@ export default function InvoiceCreate() {
         body: JSON.stringify(objinvoice)
       });
       
-      const resData = await response.json();
+      const rawText = await response.text();
+      let resData: any;
+      try {
+        resData = JSON.parse(rawText);
+      } catch (e) {
+        resData = {
+          success: false,
+          error: "Invalid response from server (HTML or non-JSON returned)",
+          rawResponse: rawText,
+          status: response.status
+        };
+      }
       
       setFbrModalData({ submitted: objinvoice, response: resData });
       
