@@ -22,6 +22,7 @@ export default function Customers() {
     institutionCode: '',
     healthUnitCode: '',
     ntn: '',
+    ntnStatus: 'Unregistered',
     strn: '',
     phone: '',
     email: '',
@@ -57,6 +58,7 @@ export default function Customers() {
       institutionCode: '',
       healthUnitCode: '',
       ntn: '',
+      ntnStatus: 'Unregistered',
       strn: '',
       phone: '',
       email: '',
@@ -102,6 +104,7 @@ export default function Customers() {
         institutionCode: formData.customerType === 'college' ? (formData.institutionCode || '') : '',
         healthUnitCode: formData.customerType === 'health_unit' ? (formData.healthUnitCode || '') : '',
         ntn: !isGov ? (formData.ntn || '') : '',
+        ntnStatus: !isGov ? (formData.ntnStatus as 'Registered' | 'Unregistered' || 'Unregistered') : 'Unregistered',
         strn: !isGov ? (formData.strn || '') : '',
         phone: formData.phone || '',
         email: formData.email || '',
@@ -129,7 +132,8 @@ export default function Customers() {
   const handleEditCustomer = (customer: Customer) => {
     setEditingId(customer.id);
     setFormData({
-      ...customer
+      ...customer,
+      ntnStatus: customer.ntnStatus || (customer.ntn ? 'Registered' : 'Unregistered')
     });
     setIsModalOpen(true);
   };
@@ -228,6 +232,9 @@ export default function Customers() {
                         <>
                           <div className="font-semibold text-slate-800">NTN: {customer.ntn || 'N/A'}</div>
                           <div className="text-xs text-slate-500">STRN: {customer.strn || 'N/A'}</div>
+                          <div className="text-xs font-semibold text-indigo-600 mt-0.5">
+                            Status: {customer.ntnStatus || (customer.ntn ? 'Registered' : 'Unregistered')}
+                          </div>
                         </>
                       )}
                     </td>
@@ -346,28 +353,42 @@ export default function Customers() {
                 )}
 
                 {formData.customerType === 'other' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">NTN Number</label>
-                      <input
-                        type="text"
-                        name="ntn"
-                        value={formData.ntn}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                        placeholder="e.g., 1234567-8"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">NTN Number</label>
+                        <input
+                          type="text"
+                          name="ntn"
+                          value={formData.ntn}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                          placeholder="e.g., 1234567-8"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">STRN Number</label>
+                        <input
+                          type="text"
+                          name="strn"
+                          value={formData.strn}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                          placeholder="e.g., 03-04-1234-567-89"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">STRN Number</label>
-                      <input
-                        type="text"
-                        name="strn"
-                        value={formData.strn}
+                      <label className="block text-xs font-bold text-slate-700 mb-1">NTN Registration Status</label>
+                      <select
+                        name="ntnStatus"
+                        value={formData.ntnStatus || 'Unregistered'}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                        placeholder="e.g., 03-04-1234-567-89"
-                      />
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white font-medium"
+                      >
+                        <option value="Registered">Registered</option>
+                        <option value="Unregistered">Unregistered</option>
+                      </select>
                     </div>
                   </div>
                 )}

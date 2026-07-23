@@ -535,7 +535,7 @@ export default function InvoiceCreate() {
       const buyerBusinessName = selectedCustomer?.name || "FERTILIZER MANUFAC IRS NEW";
       const buyerProvince = selectedCustomer?.city || "Sindh";
       const buyerAddress = selectedCustomer?.address || "Karachi";
-      const buyerRegistrationType = selectedCustomer?.ntn ? "Registered" : "Unregistered";
+      const buyerRegistrationType = selectedCustomer?.ntnStatus || (selectedCustomer?.ntn ? "Registered" : "Unregistered");
 
       const formattedDate = date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
@@ -562,7 +562,7 @@ export default function InvoiceCreate() {
           "fedPayable": 0,
           "discount": 0,
           "saleType": "Services",
-          "sroItemSerialNo": ""
+          "sroItemSerialNo": "1(ii)(ii)(a)"
         };
       }) : [
         {
@@ -582,7 +582,7 @@ export default function InvoiceCreate() {
           "fedPayable": 0,
           "discount": 0,
           "saleType": "Services",
-          "sroItemSerialNo": ""
+          "sroItemSerialNo": "1(ii)(ii)(a)"
         }
       ];
 

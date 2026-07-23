@@ -44,6 +44,7 @@ export interface Customer {
   institutionCode?: string;
   healthUnitCode?: string;
   ntn: string;
+  ntnStatus?: 'Registered' | 'Unregistered';
   strn: string;
   phone: string;
   email: string;
