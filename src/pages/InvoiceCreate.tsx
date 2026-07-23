@@ -530,19 +530,23 @@ export default function InvoiceCreate() {
     try {
       const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
-      const rawNTN = selectedCustomer?.ntn ? selectedCustomer.ntn.replace(/[^0-9]/g, '') : '';
-      const buyerNTNCNIC = rawNTN || "1000000000056";
+      const rawBuyerNTN = selectedCustomer?.ntn ? selectedCustomer.ntn.replace(/[^0-9]/g, '') : '';
+      const buyerNTNCNIC = rawBuyerNTN || "1000000000056";
       const buyerBusinessName = selectedCustomer?.name || "FERTILIZER MANUFAC IRS NEW";
       const buyerProvince = selectedCustomer?.city || "Sindh";
       const buyerAddress = selectedCustomer?.address || "Karachi";
       const buyerRegistrationType = selectedCustomer?.ntn ? "Registered" : "Unregistered";
 
-      const formattedDate = date ? new Date(date).toISOString().split('T')[0] : "2026-07-23";
+      const formattedDate = date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
+      const rawSellerNTN = company?.ntn ? company.ntn.replace(/[^0-9]/g, '') : "3710597302557";
+      const sellerNTNCNIC = rawSellerNTN.length >= 7 ? rawSellerNTN.slice(0, 7) : (rawSellerNTN || "3710597");
+      const sellerBusinessName = company?.name || "ALMAKKAH TRADERS";
 
       const fbrItems = items.length > 0 ? items.map(item => {
         const prod = products.find(p => p.id === item.productId);
         return {
-          "hsCode": prod?.code || "0101.2100",
+          "hsCode": prod?.code || "0101.2900",
           "productDescription": item.productName || prod?.name || "TEST",
           "rate": `${item.taxPercentage ?? 18}%`,
           "uoM": prod?.unit || "Numbers, pieces, units",
@@ -554,30 +558,30 @@ export default function InvoiceCreate() {
           "salesTaxWithheldAtSource": 0,
           "extraTax": 0,
           "furtherTax": 0,
-          "sroScheduleNo": "",
+          "sroScheduleNo": "ICTO TABLE I",
           "fedPayable": 0,
           "discount": 0,
-          "saleType": "Services (FED in ST Mode)",
+          "saleType": "Services",
           "sroItemSerialNo": ""
         };
       }) : [
         {
-          "hsCode": "0101.2100",
+          "hsCode": "0101.2900",
           "productDescription": "TEST",
-          "rate": "8%",
+          "rate": "5%",
           "uoM": "Numbers, pieces, units",
-          "quantity": 20,
+          "quantity": 1,
           "totalValues": 0,
-          "valueSalesExcludingST": 1000,
-          "salesTaxApplicable": 80,
+          "valueSalesExcludingST": 100,
+          "salesTaxApplicable": 5,
           "fixedNotifiedValueOrRetailPrice": 0,
           "salesTaxWithheldAtSource": 0,
           "extraTax": 0,
           "furtherTax": 0,
-          "sroScheduleNo": "",
+          "sroScheduleNo": "ICTO TABLE I",
           "fedPayable": 0,
           "discount": 0,
-          "saleType": "Services (FED in ST Mode)",
+          "saleType": "Services",
           "sroItemSerialNo": ""
         }
       ];
@@ -585,16 +589,16 @@ export default function InvoiceCreate() {
       objinvoice = {
         "invoiceType": "Sale Invoice",
         "invoiceDate": formattedDate,
-        "sellerNTNCNIC": "3710597302557",
-        "sellerBusinessName": company?.name || "ALMAKKAH TRADERS",
-        "sellerProvince": "Sindh",
-        "sellerAddress": company?.address || "Pindi Gheb",
+        "sellerNTNCNIC": sellerNTNCNIC,
+        "sellerBusinessName": sellerBusinessName,
+        "sellerProvince": "Punjab",
+        "sellerAddress": "Pindi Gheb",
         "buyerNTNCNIC": buyerNTNCNIC,
         "buyerBusinessName": buyerBusinessName,
         "buyerProvince": buyerProvince,
         "buyerAddress": buyerAddress,
         "invoiceRefNo": invoiceNumber || "AMT-2026-0005",
-        "scenarioId": "SN018",
+        "scenarioId": "SN019",
         "buyerRegistrationType": buyerRegistrationType,
         "items": fbrItems
       };
