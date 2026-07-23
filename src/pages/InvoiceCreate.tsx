@@ -219,37 +219,7 @@ export default function InvoiceCreate() {
   const [fbrInvoiceNo, setFbrInvoiceNo] = useState<string | undefined>(undefined);
   const [fbrModalData, setFbrModalData] = useState<{submitted: any, response: any} | null>(null);
   const [invoiceCreatedBy, setInvoiceCreatedBy] = useState<string | undefined>(undefined);
-  const [viewFormat, setViewFormat] = useState<'equals' | 'json'>('equals');
 
-  const formatWithEquals = (obj: any, indentLevel = 0): string => {
-    if (obj === null || obj === undefined) return String(obj);
-    const indent = ' '.repeat(indentLevel);
-    const innerIndent = ' '.repeat(indentLevel + 2);
-
-    if (Array.isArray(obj)) {
-      if (obj.length === 0) return '[]';
-      const items = obj.map(item => formatWithEquals(item, indentLevel + 2));
-      return '[\n' + items.map(i => `${innerIndent}${i}`).join(',\n') + `\n${indent}]`;
-    }
-
-    if (typeof obj === 'object') {
-      const keys = Object.keys(obj);
-      if (keys.length === 0) return '{}';
-      const lines = keys.map(key => {
-        const val = obj[key];
-        let formattedVal: string;
-        if (typeof val === 'object' && val !== null) {
-          formattedVal = formatWithEquals(val, indentLevel + 2);
-        } else {
-          formattedVal = JSON.stringify(val);
-        }
-        return `${key} = ${formattedVal}`;
-      });
-      return '{\n' + lines.map(l => `${innerIndent}${l}`).join(',\n') + `\n${indent}}`;
-    }
-
-    return JSON.stringify(obj);
-  };
   
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -567,7 +537,7 @@ export default function InvoiceCreate() {
       const buyerAddress = selectedCustomer?.address || "Karachi";
       const buyerRegistrationType = selectedCustomer?.ntn ? "Registered" : "Unregistered";
 
-      const formattedDate = date ? new Date(date).toISOString().split('T')[0] : "2025-06-14";
+      const formattedDate = date ? new Date(date).toISOString().split('T')[0] : "2026-07-23";
 
       const fbrItems = items.length > 0 ? items.map(item => {
         const prod = products.find(p => p.id === item.productId);
@@ -616,14 +586,14 @@ export default function InvoiceCreate() {
         "invoiceType": "Sale Invoice",
         "invoiceDate": formattedDate,
         "sellerNTNCNIC": "3710597302557",
-        "sellerBusinessName": company?.name || "Company 8",
+        "sellerBusinessName": company?.name || "ALMAKKAH TRADERS",
         "sellerProvince": "Sindh",
-        "sellerAddress": company?.address || "Karachi",
+        "sellerAddress": company?.address || "Pindi Gheb",
         "buyerNTNCNIC": buyerNTNCNIC,
         "buyerBusinessName": buyerBusinessName,
         "buyerProvince": buyerProvince,
         "buyerAddress": buyerAddress,
-        "invoiceRefNo": invoiceNumber || "SI-20250421-001",
+        "invoiceRefNo": invoiceNumber || "AMT-2026-0005",
         "scenarioId": "SN018",
         "buyerRegistrationType": buyerRegistrationType,
         "items": fbrItems
@@ -950,28 +920,10 @@ export default function InvoiceCreate() {
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-6 text-left">
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Submitted Data</h4>
-                  <div className="flex gap-2 text-xs">
-                    <button 
-                      onClick={() => setViewFormat('equals')} 
-                      className={`px-2.5 py-1 rounded-md transition-colors font-medium ${viewFormat === 'equals' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
-                    >
-                      Equal Format (=)
-                    </button>
-                    <button 
-                      onClick={() => setViewFormat('json')} 
-                      className={`px-2.5 py-1 rounded-md transition-colors font-medium ${viewFormat === 'json' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
-                    >
-                      Standard JSON (:)
-                    </button>
-                  </div>
-                </div>
+                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-2">Submitted JSON Data</h4>
                 <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-left">
                   <pre className="text-xs text-emerald-400 font-mono text-left whitespace-pre">
-                    {viewFormat === 'equals' 
-                      ? formatWithEquals(fbrModalData.submitted)
-                      : JSON.stringify(fbrModalData.submitted, null, 2)}
+                    {JSON.stringify(fbrModalData.submitted, null, 2)}
                   </pre>
                 </div>
               </div>
