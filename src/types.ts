@@ -28,6 +28,8 @@ export interface CompanyProfile {
   email: string;
   website: string;
   bankDetails: string;
+  productionApiDetails?: string;
+  securityToken?: string;
   printOnLetterPad?: boolean;
   headerLength?: number;
   subUsers?: SubUser[];

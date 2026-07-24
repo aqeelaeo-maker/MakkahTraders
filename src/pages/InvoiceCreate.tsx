@@ -603,12 +603,19 @@ export default function InvoiceCreate() {
         "items": fbrItems
       };
 
+      const apiUrl = company?.productionApiDetails?.trim() || undefined;
+      const securityToken = company?.securityToken?.trim() || undefined;
+
       const response = await fetch("/api/fbr/invoice", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(objinvoice)
+        body: JSON.stringify({
+          invoiceData: objinvoice,
+          apiUrl,
+          securityToken
+        })
       });
       
       const rawText = await response.text();

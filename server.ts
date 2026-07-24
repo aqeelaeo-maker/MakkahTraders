@@ -15,15 +15,19 @@ async function startServer() {
   // API route to post invoice to FBR
   app.post("/api/fbr/invoice", async (req, res) => {
     try {
-      const invoiceData = req.body;
+      const { invoiceData, apiUrl, securityToken } = req.body || {};
       
-      const response = await fetch(FBR_SANDBOX_POST_URL, {
+      const payload = invoiceData || req.body;
+      const targetUrl = (apiUrl && typeof apiUrl === 'string' && apiUrl.trim()) ? apiUrl.trim() : FBR_SANDBOX_POST_URL;
+      const bearerToken = (securityToken && typeof securityToken === 'string' && securityToken.trim()) ? securityToken.trim() : FBR_TOKEN;
+      
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${FBR_TOKEN}`,
+          'Authorization': `Bearer ${bearerToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(invoiceData)
+        body: JSON.stringify(payload)
       });
 
       const data = await response.text();
@@ -49,15 +53,19 @@ async function startServer() {
   // API route to validate invoice data to FBR Sandbox
   app.post("/api/fbr/validate-invoice", async (req, res) => {
     try {
-      const invoiceData = req.body;
+      const { invoiceData, apiUrl, securityToken } = req.body || {};
       
-      const response = await fetch(FBR_SANDBOX_VALIDATE_URL, {
+      const payload = invoiceData || req.body;
+      const targetUrl = (apiUrl && typeof apiUrl === 'string' && apiUrl.trim()) ? apiUrl.trim() : FBR_SANDBOX_VALIDATE_URL;
+      const bearerToken = (securityToken && typeof securityToken === 'string' && securityToken.trim()) ? securityToken.trim() : FBR_TOKEN;
+      
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${FBR_TOKEN}`,
+          'Authorization': `Bearer ${bearerToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(invoiceData)
+        body: JSON.stringify(payload)
       });
 
       const data = await response.text();

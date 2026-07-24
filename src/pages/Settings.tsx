@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { CompanyProfile, SubUser } from '../types';
-import { Save, Building2, Upload, Users } from 'lucide-react';
+import { Save, Building2, Upload, Users, Eye, EyeOff } from 'lucide-react';
 import { useOutletContext } from 'react-router';
 
 export default function Settings() {
   const { activeSubUser } = useOutletContext<any>() || {};
+  const isOwner = !activeSubUser || activeSubUser.role === 'owner';
   const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [showSecurityToken, setShowSecurityToken] = useState(false);
   const [profile, setProfile] = useState<CompanyProfile>({
     name: '',
     companyCode: '',
@@ -21,6 +23,8 @@ export default function Settings() {
     website: '',
     bankDetails: '',
     logoUrl: '',
+    productionApiDetails: '',
+    securityToken: '',
     subUsers: [
       { id: 'user1', username: '', password: '', role: 'owner' },
       { id: 'user2', username: '', password: '', role: 'staff' }
@@ -204,6 +208,49 @@ export default function Settings() {
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-slate-600 mb-1">Bank Details</label>
               <textarea rows={2} required value={profile.bankDetails} onChange={e => setProfile({...profile, bankDetails: e.target.value})} placeholder="Bank Name, Account Title, IBAN" className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            </div>
+
+            <div className="sm:col-span-2 pt-4 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">API & Integration Settings</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Production API Details</label>
+                  <input 
+                    type="text" 
+                    value={profile.productionApiDetails || ''} 
+                    disabled={!isOwner}
+                    onChange={e => setProfile({...profile, productionApiDetails: e.target.value})} 
+                    placeholder="Enter Production API Details" 
+                    className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed" 
+                  />
+                  {!isOwner && <p className="mt-1 text-[10px] text-slate-400">View only. Only User 1 (Owner) can edit.</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Security Token</label>
+                  <div className="relative">
+                    <input 
+                      type={isOwner && showSecurityToken ? "text" : "password"} 
+                      value={profile.securityToken || ''} 
+                      disabled={!isOwner}
+                      onChange={e => setProfile({...profile, securityToken: e.target.value})} 
+                      placeholder="Enter Security Token" 
+                      className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed pr-10" 
+                    />
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => setShowSecurityToken(!showSecurityToken)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                        title={showSecurityToken ? "Hide Security Token" : "Show Security Token"}
+                      >
+                        {showSecurityToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </div>
+                  {!isOwner && <p className="mt-1 text-[10px] text-slate-400">Hidden for staff. Only User 1 (Owner) can edit.</p>}
+                </div>
+              </div>
             </div>
 
             <div className="sm:col-span-2 flex items-center">
