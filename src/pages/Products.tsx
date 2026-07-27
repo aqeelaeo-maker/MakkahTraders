@@ -4,6 +4,8 @@ import { db, auth } from '../firebase';
 import { Product } from '../types';
 import { Plus, Search, Edit2, Trash2, Tag, X } from 'lucide-react';
 
+const SCENARIO_CODES = Array.from({ length: 28 }, (_, i) => `SN${String(i + 1).padStart(3, '0')}`);
+
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,12 @@ export default function Products() {
   // Form state
   const [formData, setFormData] = useState<Partial<Product>>({
     code: '',
+    hsCode: '',
+    scenarioCode: 'SN001',
+    saleType: '',
+    sroItemSerialNo: '',
+    sroScheduleNo: '',
+    fixedNotifiedValueOrRetailPrice: 0,
     name: '',
     category: '',
     unit: 'pcs',
@@ -50,6 +58,12 @@ export default function Products() {
     setEditingId(null);
     setFormData({
       code: '',
+      hsCode: '',
+      scenarioCode: 'SN001',
+      saleType: '',
+      sroItemSerialNo: '',
+      sroScheduleNo: '',
+      fixedNotifiedValueOrRetailPrice: 0,
       name: '',
       category: '',
       unit: 'pcs',
@@ -70,7 +84,13 @@ export default function Products() {
   const handleEdit = (product: Product) => {
     setEditingId(product.id);
     setFormData({
-      code: product.code,
+      code: product.code || '',
+      hsCode: product.hsCode || '',
+      scenarioCode: product.scenarioCode || 'SN001',
+      saleType: product.saleType || '',
+      sroItemSerialNo: product.sroItemSerialNo || '',
+      sroScheduleNo: product.sroScheduleNo || '',
+      fixedNotifiedValueOrRetailPrice: product.fixedNotifiedValueOrRetailPrice || 0,
       name: product.name,
       category: product.category,
       unit: product.unit,
@@ -113,9 +133,15 @@ export default function Products() {
         id: docId,
         userId: auth.currentUser?.uid,
         code: formData.code || '',
+        hsCode: formData.hsCode || '',
+        scenarioCode: formData.scenarioCode || 'SN001',
+        saleType: formData.saleType || '',
+        sroItemSerialNo: formData.sroItemSerialNo || '',
+        sroScheduleNo: formData.sroScheduleNo || '',
+        fixedNotifiedValueOrRetailPrice: Number(formData.fixedNotifiedValueOrRetailPrice) || 0,
         name: formData.name || '',
         category: formData.category || '',
-        unit: formData.unit || 'pcs',
+        unit: formData.unit || '',
         purchasePrice: Number(formData.purchasePrice) || 0,
         salePrice: Number(formData.salePrice) || 0,
         taxPercentage: Number(formData.taxPercentage) || 0,
@@ -141,7 +167,12 @@ export default function Products() {
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.code.toLowerCase().includes(searchTerm.toLowerCase())
+    (p.code && p.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.hsCode && p.hsCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.scenarioCode && p.scenarioCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.saleType && p.saleType.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.sroItemSerialNo && p.sroItemSerialNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.sroScheduleNo && p.sroScheduleNo.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -198,7 +229,33 @@ export default function Products() {
                         </div>
                         <div className="ml-4">
                           <div className="font-bold text-slate-900">{product.name}</div>
-                          {product.code && <div className="text-xs text-slate-500 font-mono">{product.code}</div>}
+                          <div className="text-xs text-slate-500 font-mono flex flex-wrap items-center gap-2 mt-0.5">
+                            {product.code && <span>Code: {product.code}</span>}
+                            {product.hsCode && <span>HS: {product.hsCode}</span>}
+                            <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                              Scenario: {product.scenarioCode || 'SN001'}
+                            </span>
+                            {product.saleType && (
+                              <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                Sale Type: {product.saleType}
+                              </span>
+                            )}
+                            {product.sroItemSerialNo && (
+                              <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                SRO Serial: {product.sroItemSerialNo}
+                              </span>
+                            )}
+                            {product.sroScheduleNo && (
+                              <span className="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                SRO Schedule: {product.sroScheduleNo}
+                              </span>
+                            )}
+                            {Boolean(product.fixedNotifiedValueOrRetailPrice) && (
+                              <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                Fixed/Retail Val: {product.fixedNotifiedValueOrRetailPrice}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -264,6 +321,75 @@ export default function Products() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">HS Code</label>
+                      <input
+                        type="text"
+                        name="hsCode"
+                        value={formData.hsCode || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        placeholder="e.g., 0101.2900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Scenario Code</label>
+                      <select
+                        name="scenarioCode"
+                        value={formData.scenarioCode || 'SN001'}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white font-medium"
+                      >
+                        {SCENARIO_CODES.map(code => (
+                          <option key={code} value={code}>{code}</option>
+                        ))}
+                        {formData.scenarioCode && !SCENARIO_CODES.includes(formData.scenarioCode) && (
+                          <option value={formData.scenarioCode}>{formData.scenarioCode}</option>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Sale Type</label>
+                      <input
+                        type="text"
+                        name="saleType"
+                        value={formData.saleType || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        placeholder="e.g., Goods at standard rate"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">SRO Item Serial No</label>
+                      <input
+                        type="text"
+                        name="sroItemSerialNo"
+                        value={formData.sroItemSerialNo || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        placeholder="e.g., 1(ii)(ii)(a)"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">SRO Schedule No</label>
+                    <input
+                      type="text"
+                      name="sroScheduleNo"
+                      value={formData.sroScheduleNo || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      placeholder="e.g., ICTO TABLE I"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
                       <select
                         name="category"
@@ -284,34 +410,42 @@ export default function Products() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">Unit</label>
-                      <select
+                      <input
+                        type="text"
                         name="unit"
-                        value={formData.unit}
+                        value={formData.unit || ''}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
-                      >
-                        <option value="pcs">Pieces</option>
-                        <option value="kg">Kilograms</option>
-                        <option value="ltr">Liters</option>
-                        <option value="bag">Bags</option>
-                        <option value="box">Boxes</option>
-                        <option value="m">Meters</option>
-                        <option value="sqm">Sq. Meters</option>
-                      </select>
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        placeholder="e.g., pcs, kg, Nos, Meter"
+                      />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Price</label>
-                    <input
-                      type="number"
-                      name="salePrice"
-                      required
-                      min="0"
-                      value={formData.salePrice}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Price</label>
+                      <input
+                        type="number"
+                        name="salePrice"
+                        required
+                        min="0"
+                        value={formData.salePrice}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Fixed/Notified Value or Retail Price</label>
+                      <input
+                        type="number"
+                        name="fixedNotifiedValueOrRetailPrice"
+                        min="0"
+                        value={formData.fixedNotifiedValueOrRetailPrice ?? 0}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        placeholder="0"
+                      />
+                    </div>
                   </div>
                 </div>
 

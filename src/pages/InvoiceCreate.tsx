@@ -238,7 +238,7 @@ export default function InvoiceCreate() {
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
   const productDropdownRef = useRef<HTMLDivElement>(null);
-  const [currentItem, setCurrentItem] = useState<Partial<InvoiceItem>>({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 });
+  const [currentItem, setCurrentItem] = useState<Partial<InvoiceItem>>({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0, salesTaxWithheldAtSource: 0, extraTax: 0, furtherTax: 0, fedPayable: 0 });
   const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -390,7 +390,7 @@ export default function InvoiceCreate() {
     } else {
       setItems([...items, { ...currentItem, id: Math.random().toString() }]);
     }
-    setCurrentItem({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 });
+    setCurrentItem({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0, salesTaxWithheldAtSource: 0, extraTax: 0, furtherTax: 0, fedPayable: 0 });
     setProductSearchTerm('');
     setIsProductDropdownOpen(false);
   };
@@ -407,7 +407,7 @@ export default function InvoiceCreate() {
     setItems(newItems);
     if (editItemIndex === index) {
       setEditItemIndex(null);
-      setCurrentItem({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0 });
+      setCurrentItem({ qty: 1, unitPrice: 0, taxPercentage: 18, total: 0, tax: 0, grandTotal: 0, salesTaxWithheldAtSource: 0, extraTax: 0, furtherTax: 0, fedPayable: 0 });
       setProductSearchTerm('');
     } else if (editItemIndex !== null && index < editItemIndex) {
       setEditItemIndex(editItemIndex - 1);
@@ -543,30 +543,36 @@ export default function InvoiceCreate() {
       const sellerNTNCNIC = rawSellerNTN.length >= 7 ? rawSellerNTN.slice(0, 7) : (rawSellerNTN || "3710597");
       const sellerBusinessName = company?.name || "ALMAKKAH TRADERS";
 
+      const matchedProducts = items.map(item => 
+        products.find(p => p.id === item.productId || (p.name && item.productName && p.name.toLowerCase() === item.productName.toLowerCase()))
+      ).filter((p): p is Product => Boolean(p));
+
+      const selectedScenario = matchedProducts.find(p => p?.scenarioCode)?.scenarioCode || "SN001";
+
       const fbrItems = items.length > 0 ? items.map(item => {
-        const prod = products.find(p => p.id === item.productId);
+        const prod = products.find(p => p.id === item.productId || (p.name && item.productName && p.name.toLowerCase() === item.productName.toLowerCase()));
         return {
-          "hsCode": prod?.code || "0101.2900",
+          "hsCode": prod?.hsCode || prod?.code || "0101.2900",
           "productDescription": item.productName || prod?.name || "TEST",
-          "rate": `${item.taxPercentage ?? 18}%`,
+          "rate": (item.taxPercentage !== undefined && Number(item.taxPercentage) === 0) ? "Exempt" : `${item.taxPercentage ?? 18}%`,
           "uoM": prod?.unit || "Numbers, pieces, units",
           "quantity": item.qty || 1,
           "totalValues": item.grandTotal || 0,
           "valueSalesExcludingST": item.total || 0,
           "salesTaxApplicable": item.tax || 0,
-          "fixedNotifiedValueOrRetailPrice": 0,
-          "salesTaxWithheldAtSource": 0,
-          "extraTax": 0,
-          "furtherTax": 0,
-          "sroScheduleNo": "ICTO TABLE I",
-          "fedPayable": 0,
+          "fixedNotifiedValueOrRetailPrice": Number(prod?.fixedNotifiedValueOrRetailPrice) || 0,
+          "salesTaxWithheldAtSource": Number(item.salesTaxWithheldAtSource) || 0,
+          "extraTax": Number(item.extraTax) || 0,
+          "furtherTax": Number(item.furtherTax) || 0,
+          "sroScheduleNo": prod?.sroScheduleNo || "",
+          "fedPayable": Number(item.fedPayable) || 0,
           "discount": 0,
-          "saleType": "Services",
-          "sroItemSerialNo": "1(ii)(ii)(a)"
+          "saleType": prod?.saleType || "",
+          "sroItemSerialNo": prod?.sroItemSerialNo || ""
         };
       }) : [
         {
-          "hsCode": "0101.2900",
+          "hsCode": matchedProducts[0]?.hsCode || matchedProducts[0]?.code || "0101.2900",
           "productDescription": "TEST",
           "rate": "5%",
           "uoM": "Numbers, pieces, units",
@@ -578,11 +584,11 @@ export default function InvoiceCreate() {
           "salesTaxWithheldAtSource": 0,
           "extraTax": 0,
           "furtherTax": 0,
-          "sroScheduleNo": "ICTO TABLE I",
+          "sroScheduleNo": matchedProducts[0]?.sroScheduleNo || "",
           "fedPayable": 0,
           "discount": 0,
-          "saleType": "Services",
-          "sroItemSerialNo": "1(ii)(ii)(a)"
+          "saleType": matchedProducts[0]?.saleType || "",
+          "sroItemSerialNo": matchedProducts[0]?.sroItemSerialNo || ""
         }
       ];
 
@@ -598,7 +604,7 @@ export default function InvoiceCreate() {
         "buyerProvince": buyerProvince,
         "buyerAddress": buyerAddress,
         "invoiceRefNo": invoiceNumber || "AMT-2026-0005",
-        "scenarioId": "SN019",
+        "scenarioId": selectedScenario,
         "buyerRegistrationType": buyerRegistrationType,
         "items": fbrItems
       };
@@ -790,6 +796,14 @@ export default function InvoiceCreate() {
                   <div className="text-sm">
                     <span className="font-semibold text-slate-700">{item.productName}</span>
                     <span className="text-slate-500 text-xs ml-2">({item.qty} x Rs {item.unitPrice})</span>
+                    {(Boolean(item.salesTaxWithheldAtSource) || Boolean(item.extraTax) || Boolean(item.furtherTax) || Boolean(item.fedPayable)) && (
+                      <div className="text-[11px] text-slate-500 gap-x-2 gap-y-0.5 flex flex-wrap mt-0.5">
+                        {item.salesTaxWithheldAtSource ? <span>ST Withheld: {item.salesTaxWithheldAtSource}</span> : null}
+                        {item.extraTax ? <span>Extra Tax: {item.extraTax}</span> : null}
+                        {item.furtherTax ? <span>Further Tax: {item.furtherTax}</span> : null}
+                        {item.fedPayable ? <span>FED Payable: {item.fedPayable}</span> : null}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-bold text-slate-800">Rs {(item.total || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
@@ -838,7 +852,9 @@ export default function InvoiceCreate() {
                         const search = productSearchTerm.toLowerCase();
                         return (
                           p.name.toLowerCase().includes(search) ||
-                          String(p.code || '').toLowerCase().includes(search)
+                          String(p.code || '').toLowerCase().includes(search) ||
+                          String(p.hsCode || '').toLowerCase().includes(search) ||
+                          String(p.scenarioCode || '').toLowerCase().includes(search)
                         );
                       })
                       .map(p => (
@@ -852,14 +868,24 @@ export default function InvoiceCreate() {
                           }}
                         >
                           <div className="font-medium text-slate-800">{p.name}</div>
-                          {p.code && <div className="text-xs text-slate-500">Code: {p.code}</div>}
+                          <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+                            {p.code && <span>Code: {p.code}</span>}
+                            {p.hsCode && <span>HS: {p.hsCode}</span>}
+                            {p.scenarioCode && (
+                              <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                Scenario: {p.scenarioCode}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     {products.filter(p => {
                         const search = productSearchTerm.toLowerCase();
                         return (
                           p.name.toLowerCase().includes(search) ||
-                          String(p.code || '').toLowerCase().includes(search)
+                          String(p.code || '').toLowerCase().includes(search) ||
+                          String(p.hsCode || '').toLowerCase().includes(search) ||
+                          String(p.scenarioCode || '').toLowerCase().includes(search)
                         );
                       }).length === 0 && (
                       <div className="px-3 py-2 text-sm text-slate-500">No products found</div>
@@ -883,6 +909,25 @@ export default function InvoiceCreate() {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tax Amt</label>
                   <input type="number" value={currentItem.tax || ''} onChange={e => handleTaxAmountChange(parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">ST Withheld</label>
+                  <input type="number" min="0" value={currentItem.salesTaxWithheldAtSource ?? ''} onChange={e => handleCurrentItemChange('salesTaxWithheldAtSource', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Extra Tax</label>
+                  <input type="number" min="0" value={currentItem.extraTax ?? ''} onChange={e => handleCurrentItemChange('extraTax', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Further Tax</label>
+                  <input type="number" min="0" value={currentItem.furtherTax ?? ''} onChange={e => handleCurrentItemChange('furtherTax', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">FED Payable</label>
+                  <input type="number" min="0" value={currentItem.fedPayable ?? ''} onChange={e => handleCurrentItemChange('fedPayable', parseFloat(e.target.value))} className="block w-full text-sm border-slate-200 rounded-lg border py-1.5 px-2 bg-white" placeholder="0" />
                 </div>
               </div>
               

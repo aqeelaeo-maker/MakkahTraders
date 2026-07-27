@@ -58,6 +58,12 @@ export interface Product {
   id: string;
   userId?: string;
   code: string;
+  hsCode?: string;
+  scenarioCode?: string;
+  saleType?: string;
+  sroItemSerialNo?: string;
+  sroScheduleNo?: string;
+  fixedNotifiedValueOrRetailPrice?: number;
   name: string;
   category: string;
   unit: string;
@@ -78,6 +84,10 @@ export interface InvoiceItem {
   total: number;
   tax: number;
   grandTotal: number;
+  salesTaxWithheldAtSource?: number;
+  extraTax?: number;
+  furtherTax?: number;
+  fedPayable?: number;
 }
 
 export interface Invoice {
