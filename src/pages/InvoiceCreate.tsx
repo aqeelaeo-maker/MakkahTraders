@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, getDocs, orderBy, addDoc, doc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Customer, Product, Invoice, InvoiceItem, CompanyProfile } from '../types';
-import { Plus, Trash2, Save, Printer, Download, ArrowLeft, Pencil, X } from 'lucide-react';
+import { Plus, Trash2, Save, Printer, Download, ArrowLeft, Pencil, X, CheckCircle } from 'lucide-react';
 import { useNavigate, Link, useParams, useSearchParams, useOutletContext } from 'react-router';
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
-import { QRCodeCanvas } from 'qrcode.react';
+import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import Barcode from 'react-barcode';
 import { format } from 'date-fns';
+import FbrLogo from '../components/FbrLogo';
+import { formatAmount } from '../utils/format';
 
 const InvoicePreview = React.memo(({ 
   invoiceTitle, 
@@ -17,12 +19,21 @@ const InvoicePreview = React.memo(({
   selectedCustomerDetails,
   invoiceNumber,
   fbrInvoiceNo,
+  fbrResponse,
+  fbrStatus,
   items,
   subtotal,
   totalTax,
   discount,
   netTotal
 }: any) => {
+  const displayFbrInvNo = (fbrInvoiceNo && fbrInvoiceNo !== 'SUBMITTED') 
+    ? fbrInvoiceNo 
+    : (fbrResponse?.data?.invoiceNumber || fbrResponse?.invoiceNumber || fbrResponse?.data?.validationResponse?.invoiceStatuses?.[0]?.invoiceNo || (fbrStatus === 'Submitted' ? fbrInvoiceNo : null));
+
+  const showQrCode = Boolean(displayFbrInvNo || fbrStatus === 'Submitted');
+  const qrValue = String(displayFbrInvNo || fbrInvoiceNo || invoiceNumber || '');
+
   return (
     <div 
       key={index}
@@ -100,10 +111,10 @@ const InvoicePreview = React.memo(({
             <span className="font-semibold text-gray-600">Date:</span>
             <span className="border-b border-gray-900 w-full"></span>
             
-            {fbrInvoiceNo && (
+            {displayFbrInvNo && (
               <>
                 <span className="font-semibold text-gray-600">FBR Inv No:</span>
-                <span className="text-[14px] font-bold text-gray-900 leading-none text-right">{fbrInvoiceNo}</span>
+                <span className="text-[14px] font-bold text-gray-900 leading-none text-right">{displayFbrInvNo}</span>
               </>
             )}
           </div>
@@ -138,11 +149,11 @@ const InvoicePreview = React.memo(({
                 <td className="py-2 px-2">{idx + 1}</td>
                 <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
                 <td className="py-2 px-2 text-center">{item.qty || 0}</td>
-                <td className="py-2 px-2 text-right">{(item.unitPrice || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-                <td className="py-2 px-2 text-right">{(item.total || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-                <td className="py-2 px-2 text-center">{item.taxPercentage || 0}%</td>
-                <td className="py-2 px-2 text-right">{(item.tax || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-                <td className="py-2 px-2 text-right font-semibold">{(item.grandTotal || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
+                <td className="py-2 px-2 text-right">{formatAmount(item.unitPrice)}</td>
+                <td className="py-2 px-2 text-right">{formatAmount(item.total)}</td>
+                <td className="py-2 px-2 text-center">{formatAmount(item.taxPercentage)}%</td>
+                <td className="py-2 px-2 text-right">{formatAmount(item.tax)}</td>
+                <td className="py-2 px-2 text-right font-semibold">{formatAmount(item.grandTotal)}</td>
               </tr>
             ))}
           </tbody>
@@ -160,35 +171,55 @@ const InvoicePreview = React.memo(({
           <tbody>
             <tr>
               <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">GST against Bill No {invoiceNumber}</td>
-              <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{subtotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-              <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{totalTax.toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-              <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{(subtotal + totalTax).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
+              <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(subtotal)}</td>
+              <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(totalTax)}</td>
+              <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(subtotal + totalTax)}</td>
             </tr>
           </tbody>
         </table>
       )}
 
       {/* Totals & Footer Info */}
-      <div className="flex justify-end items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
+      <div className="flex justify-between items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
+        {/* Left side: FBR Logo & QR Code */}
+        <div className="flex flex-col items-start justify-center pl-1 pt-1">
+          {invoiceTitle === 'SALES TAX INVOICE' && (
+            <div className="flex items-center gap-3">
+              <FbrLogo className="w-32 h-32 object-contain" />
+              {showQrCode && (
+                <div className="flex flex-col items-center pl-1">
+                  <QRCodeSVG value={qrValue} size={105} level="M" />
+                  {(displayFbrInvNo || fbrInvoiceNo) && (
+                    <span className="text-[9px] font-mono font-bold text-gray-800 mt-1 max-w-[120px] break-all text-center leading-tight">
+                      {displayFbrInvNo || fbrInvoiceNo}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right side: Totals Box */}
         <div className="w-[60%]">
           <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
             <div className="flex justify-between py-1.5 items-center">
               <span className="font-bold text-gray-700 text-[18px]">Total Excl. Sales Tax:</span>
-              <span className="font-bold text-[20px]">{subtotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+              <span className="font-bold text-[20px]">{formatAmount(subtotal)}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-gray-300 items-center">
               <span className="font-bold text-gray-700 text-[18px]">Total Sales Tax:</span>
-              <span className="font-bold text-[20px]">{totalTax.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+              <span className="font-bold text-[20px]">{formatAmount(totalTax)}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600 items-center">
                 <span className="font-bold text-[18px]">Discount:</span>
-                <span className="font-bold text-[20px]">-{discount.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                <span className="font-bold text-[20px]">-{formatAmount(discount)}</span>
               </div>
             )}
             <div className="flex justify-between py-3 text-[18px] font-black text-gray-900 items-center">
               <span>Total Value Incl. Tax:</span>
-              <span>PKR {netTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+              <span>PKR {formatAmount(netTotal)}</span>
             </div>
           </div>
           
@@ -215,9 +246,10 @@ export default function InvoiceCreate() {
   };
 
   const [loading, setLoading] = useState(false);
-  const [fbrStatus, setFbrStatus] = useState<'Pending' | 'Submitted' | 'Failed' | undefined>(undefined);
+  const [fbrStatus, setFbrStatus] = useState<'Pending' | 'Submitted' | 'Failed' | 'Not Submitted' | undefined>(undefined);
   const [fbrInvoiceNo, setFbrInvoiceNo] = useState<string | undefined>(undefined);
-  const [fbrModalData, setFbrModalData] = useState<{submitted: any, response: any} | null>(null);
+  const [fbrResponse, setFbrResponse] = useState<any>(undefined);
+  const [fbrModalData, setFbrModalData] = useState<{submitted: any, response: any, isSuccess?: boolean} | null>(null);
   const [invoiceCreatedBy, setInvoiceCreatedBy] = useState<string | undefined>(undefined);
 
   
@@ -337,6 +369,7 @@ export default function InvoiceCreate() {
           setDate(invData.date);
           setFbrStatus(invData.fbrStatus);
           setFbrInvoiceNo(invData.fbrInvoiceNo);
+          setFbrResponse(invData.fbrResponse);
           setInvoiceCreatedBy(invData.createdBy);
         }
       } else {
@@ -436,12 +469,12 @@ export default function InvoiceCreate() {
   };
 
   const handleTaxAmountChange = (value: number) => {
-    const tax = isNaN(value) ? 0 : value;
+    const tax = isNaN(value) ? 0 : Math.round(value * 100) / 100;
     const qty = currentItem.qty || 0;
     const unitPrice = currentItem.unitPrice || 0;
-    const total = Math.round(qty * unitPrice);
+    const total = Math.round((qty * unitPrice) * 100) / 100;
     
-    const grandTotal = total + tax;
+    const grandTotal = Math.round((total + tax) * 100) / 100;
     
     setCurrentItem({ ...currentItem, total, tax, grandTotal });
   };
@@ -451,9 +484,9 @@ export default function InvoiceCreate() {
     const unitPrice = item.unitPrice || 0;
     const taxPerc = item.taxPercentage || 0;
     
-    const total = Math.round(qty * unitPrice);
-    const tax = Math.round((total * taxPerc) / 100);
-    const grandTotal = total + tax;
+    const total = Math.round((qty * unitPrice) * 100) / 100;
+    const tax = Math.round(((total * taxPerc) / 100) * 100) / 100;
+    const grandTotal = Math.round((total + tax) * 100) / 100;
 
     setCurrentItem({ ...item, total, tax, grandTotal });
   };
@@ -463,7 +496,11 @@ export default function InvoiceCreate() {
   const totalTax = items.reduce((sum, item) => sum + (item.tax || 0), 0);
   const netTotal = subtotal + totalTax - discount;
 
-  const handleSave = async () => {
+  const handleSave = async (
+    overrideFbrStatus?: 'Pending' | 'Submitted' | 'Failed' | 'Not Submitted',
+    overrideFbrInvoiceNo?: string,
+    overrideFbrResponse?: any
+  ) => {
     if (!selectedCustomerId || items.length === 0 || !items[0].productId) {
       alert("Please select customer and add at least one product.");
       return null;
@@ -473,6 +510,10 @@ export default function InvoiceCreate() {
     try {
       const customer = customers.find(c => c.id === selectedCustomerId);
       
+      const currentFbrStatus = overrideFbrStatus !== undefined ? overrideFbrStatus : fbrStatus;
+      const currentFbrInvoiceNo = overrideFbrInvoiceNo !== undefined ? overrideFbrInvoiceNo : fbrInvoiceNo;
+      const currentFbrResponse = overrideFbrResponse !== undefined ? overrideFbrResponse : fbrResponse;
+
       const invoiceData: Omit<Invoice, 'id'> = {
         userId: auth.currentUser?.uid,
         invoiceNumber,
@@ -495,12 +536,14 @@ export default function InvoiceCreate() {
           ? invoiceCreatedBy 
           : (activeSubUser?.username || (activeSubUser?.id === 'user2' || activeSubUser?.role === 'staff' ? 'user2' : 'user1')),
         status,
-        fbrStatus,
-        fbrInvoiceNo
+        fbrStatus: currentFbrStatus,
+        fbrInvoiceNo: currentFbrInvoiceNo,
+        fbrResponse: currentFbrResponse
       };
 
       if (invoiceData.fbrStatus === undefined) delete invoiceData.fbrStatus;
       if (invoiceData.fbrInvoiceNo === undefined) delete invoiceData.fbrInvoiceNo;
+      if (invoiceData.fbrResponse === undefined) delete invoiceData.fbrResponse;
 
       if (id) {
         await updateDoc(doc(db, 'invoices', id), invoiceData);
@@ -637,10 +680,55 @@ export default function InvoiceCreate() {
         };
       }
       
-      setFbrModalData({ submitted: objinvoice, response: resData });
+      // Check if response contains invoiceNumber and success
+      const extractedInvoiceNo = 
+        resData?.data?.invoiceNumber || 
+        resData?.invoiceNumber || 
+        resData?.data?.validationResponse?.invoiceStatuses?.[0]?.invoiceNo ||
+        null;
+
+      const isSuccess = (resData?.success === true || resData?.data?.validationResponse?.status === "Valid" || Boolean(resData?.data?.invoiceNumber) || Boolean(resData?.invoiceNumber)) && Boolean(extractedInvoiceNo);
+
+      setFbrModalData({ submitted: objinvoice, response: resData, isSuccess });
+
+      if (isSuccess) {
+        const finalFbrInvoiceNo = extractedInvoiceNo || "SUBMITTED";
+        setFbrStatus('Submitted');
+        setFbrInvoiceNo(finalFbrInvoiceNo);
+        setFbrResponse(resData);
+
+        // Automatically update/save response json data to database
+        if (selectedCustomerId && items.length > 0 && items[0].productId) {
+          const savedDocId = await handleSave('Submitted', finalFbrInvoiceNo, resData);
+          if (savedDocId && !id) {
+            window.history.replaceState(null, '', `/invoices/edit/${savedDocId}`);
+          }
+        } else if (id) {
+          await updateDoc(doc(db, 'invoices', id), {
+            fbrStatus: 'Submitted',
+            fbrInvoiceNo: finalFbrInvoiceNo,
+            fbrResponse: resData
+          });
+        }
+      } else {
+        setFbrStatus('Not Submitted');
+        setFbrResponse(resData);
+
+        if (selectedCustomerId && items.length > 0 && items[0].productId) {
+          const savedDocId = await handleSave('Not Submitted', undefined, resData);
+          if (savedDocId && !id) {
+            window.history.replaceState(null, '', `/invoices/edit/${savedDocId}`);
+          }
+        } else if (id) {
+          await updateDoc(doc(db, 'invoices', id), {
+            fbrStatus: 'Not Submitted',
+            fbrResponse: resData
+          });
+        }
+      }
       
     } catch (err: any) {
-      setFbrModalData({ submitted: objinvoice || null, response: { error: err.message } });
+      setFbrModalData({ submitted: objinvoice || null, response: { error: err.message }, isSuccess: false });
     } finally {
       setLoading(false);
     }
@@ -696,7 +784,7 @@ export default function InvoiceCreate() {
             disabled={loading}
             className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-colors flex items-center disabled:opacity-50"
           >
-            TestFBR
+            Submit to FBR
           </button>
           
           <button 
@@ -806,7 +894,7 @@ export default function InvoiceCreate() {
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-slate-800">Rs {(item.total || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                    <span className="text-sm font-bold text-slate-800">Rs {formatAmount(item.total)}</span>
                     <button 
                       onClick={() => editItemRow(index)}
                       className="text-indigo-400 hover:text-indigo-600 transition-colors p-1"
@@ -939,7 +1027,7 @@ export default function InvoiceCreate() {
             <div className="border-t border-slate-100 pt-4 space-y-2 mt-auto">
               <div className="flex justify-between text-sm items-center">
                 <span className="text-xs font-bold text-slate-500 uppercase">Discount</span>
-                <input type="number" value={discount} onChange={e => setDiscount(Math.round(parseFloat(e.target.value)) || 0)} className="w-24 text-right border-slate-200 rounded-lg border px-2 py-1 text-sm bg-slate-50 focus:outline-none" />
+                <input type="number" value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)} className="w-24 text-right border-slate-200 rounded-lg border px-2 py-1 text-sm bg-slate-50 focus:outline-none" />
               </div>
             </div>
           </div>
@@ -961,6 +1049,8 @@ export default function InvoiceCreate() {
                 selectedCustomerDetails={selectedCustomerDetails}
                 invoiceNumber={invoiceNumber}
                 fbrInvoiceNo={fbrInvoiceNo}
+                fbrResponse={fbrResponse}
+                fbrStatus={fbrStatus}
                 items={items}
                 subtotal={subtotal}
                 totalTax={totalTax}
@@ -985,23 +1075,39 @@ export default function InvoiceCreate() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-left">
-              <div>
-                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-2">Submitted JSON Data</h4>
-                <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-left">
-                  <pre className="text-xs text-emerald-400 font-mono text-left whitespace-pre">
-                    {JSON.stringify(fbrModalData.submitted, null, 2)}
-                  </pre>
+            <div className="flex-1 overflow-y-auto p-6 text-left">
+              {fbrModalData.isSuccess ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                    <CheckCircle className="w-10 h-10" />
+                  </div>
+                  <h4 className="text-2xl font-bold text-emerald-600 mb-2">Submitted successfully</h4>
+                  {fbrInvoiceNo && (
+                    <p className="text-sm text-slate-600 font-mono mt-1 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+                      FBR Invoice No: <span className="font-bold text-slate-800">{fbrInvoiceNo}</span>
+                    </p>
+                  )}
                 </div>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-2">Response Data</h4>
-                <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-left">
-                  <pre className="text-xs text-blue-400 font-mono text-left whitespace-pre">
-                    {JSON.stringify(fbrModalData.response, null, 2)}
-                  </pre>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-2">Submitted JSON Data</h4>
+                    <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-left">
+                      <pre className="text-xs text-emerald-400 font-mono text-left whitespace-pre">
+                        {JSON.stringify(fbrModalData.submitted, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-2">Response Data</h4>
+                    <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-left">
+                      <pre className="text-xs text-blue-400 font-mono text-left whitespace-pre">
+                        {JSON.stringify(fbrModalData.response, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button 

@@ -6,6 +6,9 @@ import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 import Barcode from 'react-barcode';
 import { format } from 'date-fns';
+import FbrLogo from './FbrLogo';
+import { QRCodeSVG } from 'qrcode.react';
+import { formatAmount } from '../utils/format';
 
 interface Props {
   invoiceId: string;
@@ -103,6 +106,13 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
   if (loading || !data) return <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
 
   const { invoice, customer, company } = data;
+
+  const displayFbrInvNo = (invoice.fbrInvoiceNo && invoice.fbrInvoiceNo !== 'SUBMITTED')
+    ? invoice.fbrInvoiceNo
+    : (invoice.fbrResponse?.data?.invoiceNumber || invoice.fbrResponse?.invoiceNumber || invoice.fbrResponse?.data?.validationResponse?.invoiceStatuses?.[0]?.invoiceNo || (invoice.fbrStatus === 'Submitted' ? invoice.fbrInvoiceNo : null));
+
+  const showQrCode = Boolean(displayFbrInvNo || invoice.fbrStatus === 'Submitted');
+  const qrValue = String(displayFbrInvNo || invoice.fbrInvoiceNo || invoice.invoiceNumber || '');
 
   return (
     <>
@@ -202,6 +212,13 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                   
                   <span className="font-semibold text-gray-600">Date:</span>
                   <span className="border-b border-gray-900 w-full"></span>
+
+                  {displayFbrInvNo && (
+                    <>
+                      <span className="font-semibold text-gray-600">FBR Inv No:</span>
+                      <span className="text-[14px] font-bold text-gray-900 leading-none text-right">{displayFbrInvNo}</span>
+                    </>
+                  )}
                 </div>
                 <div className="mt-2 inline-block">
                   {invoice.invoiceNumber && <Barcode value={invoice.invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
@@ -234,11 +251,11 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                       <td className="py-2 px-2">{idx + 1}</td>
                       <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
                       <td className="py-2 px-2 text-center">{item.qty || 0}</td>
-                      <td className="py-2 px-2 text-right">{(item.unitPrice || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-                      <td className="py-2 px-2 text-right">{(item.total || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-                      <td className="py-2 px-2 text-center">{item.taxPercentage || 0}%</td>
-                      <td className="py-2 px-2 text-right">{(item.tax || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-                      <td className="py-2 px-2 text-right font-semibold">{(item.grandTotal || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
+                      <td className="py-2 px-2 text-right">{formatAmount(item.unitPrice)}</td>
+                      <td className="py-2 px-2 text-right">{formatAmount(item.total)}</td>
+                      <td className="py-2 px-2 text-center">{formatAmount(item.taxPercentage)}%</td>
+                      <td className="py-2 px-2 text-right">{formatAmount(item.tax)}</td>
+                      <td className="py-2 px-2 text-right font-semibold">{formatAmount(item.grandTotal)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -256,35 +273,55 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                 <tbody>
                   <tr>
                     <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">GST against Bill No {invoice.invoiceNumber}</td>
-                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{invoice.subtotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{invoice.taxAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
-                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{(invoice.subtotal + invoice.taxAmount).toLocaleString("en-US", { maximumFractionDigits: 0 })}</td>
+                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.subtotal)}</td>
+                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.taxAmount)}</td>
+                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.subtotal + invoice.taxAmount)}</td>
                   </tr>
                 </tbody>
               </table>
             )}
 
             {/* Totals & Footer Info */}
-            <div className="flex justify-end items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
+            <div className="flex justify-between items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
+              {/* Left side: FBR Logo & QR Code */}
+              <div className="flex flex-col items-start justify-center pl-1 pt-1">
+                {invoiceTitle === 'SALES TAX INVOICE' && (
+                  <div className="flex items-center gap-3">
+                    <FbrLogo className="w-32 h-32 object-contain" />
+                    {showQrCode && (
+                      <div className="flex flex-col items-center pl-1">
+                        <QRCodeSVG value={qrValue} size={105} level="M" />
+                        {(displayFbrInvNo || invoice.fbrInvoiceNo) && (
+                          <span className="text-[9px] font-mono font-bold text-gray-800 mt-1 max-w-[120px] break-all text-center leading-tight">
+                            {displayFbrInvNo || invoice.fbrInvoiceNo}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Right side: Totals Box */}
               <div className="w-[60%]">
                 <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
                   <div className="flex justify-between py-1.5 items-center">
                     <span className="font-bold text-gray-700 text-[18px]">Total Excl. Sales Tax:</span>
-                    <span className="font-bold text-[20px]">{invoice.subtotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                    <span className="font-bold text-[20px]">{formatAmount(invoice.subtotal)}</span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-gray-300 items-center">
                     <span className="font-bold text-gray-700 text-[18px]">Total Sales Tax:</span>
-                    <span className="font-bold text-[20px]">{invoice.taxAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                    <span className="font-bold text-[20px]">{formatAmount(invoice.taxAmount)}</span>
                   </div>
                   {invoice.discount > 0 && (
                     <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600 items-center">
                       <span className="font-bold text-[18px]">Discount:</span>
-                      <span className="font-bold text-[20px]">-{invoice.discount.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                      <span className="font-bold text-[20px]">-{formatAmount(invoice.discount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between py-3 text-[18px] font-black text-gray-900 items-center">
                     <span>Total Value Incl. Tax:</span>
-                    <span>PKR {invoice.netTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                    <span>PKR {formatAmount(invoice.netTotal)}</span>
                   </div>
                 </div>
                 

@@ -113,12 +113,14 @@ export default function Dashboard() {
   }, [allInvoices, reportRange]);
 
   const formatCurrency = (amount: number) => {
+    const val = amount || 0;
+    const isDecimal = val % 1 !== 0;
     return new Intl.NumberFormat('en-PK', {
       style: 'currency',
       currency: 'PKR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount || 0);
+      minimumFractionDigits: isDecimal ? 2 : 0,
+      maximumFractionDigits: isDecimal ? 2 : 0,
+    }).format(val);
   };
 
   const handleExportExcel = () => {

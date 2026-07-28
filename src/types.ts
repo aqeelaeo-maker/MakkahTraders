@@ -111,7 +111,7 @@ export interface Invoice {
   netTotal: number;
   createdBy: string;
   status: 'Draft' | 'Paid' | 'Unpaid' | 'Cancelled';
-  fbrStatus?: 'Pending' | 'Submitted' | 'Failed';
+  fbrStatus?: 'Pending' | 'Submitted' | 'Failed' | 'Not Submitted';
   fbrInvoiceNo?: string;
   fbrResponse?: any;
 }

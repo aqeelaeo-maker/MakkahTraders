@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, getDocs, orderBy, limit, deleteDoc, doc, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Invoice } from '../types';
-import { Plus, Search, FileText, Download, Eye, Edit2, Trash2, Printer } from 'lucide-react';
+import { Plus, Search, FileText, Download, Eye, Edit2, Trash2, Printer, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link, useOutletContext } from 'react-router';
 import HiddenInvoicePrinter from '../components/HiddenInvoicePrinter';
+import { formatAmount } from '../utils/format';
 
 export default function Invoices() {
   const { activeSubUser, companyProfile } = useOutletContext<any>() || {};
@@ -18,6 +19,7 @@ export default function Invoices() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [activePrintId, setActivePrintId] = useState<string | null>(null);
   const [activeDownloadId, setActiveDownloadId] = useState<string | null>(null);
+  const [viewingFbrInvoice, setViewingFbrInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -183,20 +185,39 @@ export default function Invoices() {
                       <div className="text-sm text-slate-600 font-medium capitalize">{getCreatedByDisplay(invoice)}</div>
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap text-right">
-                      <div className="font-bold text-slate-900">{invoice.netTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>
-                      <div className="text-xs text-indigo-600 font-medium">Tax: {invoice.taxAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>
+                      <div className="font-bold text-slate-900">{formatAmount(invoice.netTotal)}</div>
+                      <div className="text-xs text-indigo-600 font-medium">Tax: {formatAmount(invoice.taxAmount)}</div>
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap">
                       {invoice.fbrStatus === 'Submitted' ? (
-                        <span className="px-2 py-1 inline-flex text-[10px] leading-4 font-bold rounded uppercase tracking-wider bg-emerald-100 text-emerald-700">
-                          {invoice.fbrInvoiceNo || 'Submitted'}
-                        </span>
-                      ) : invoice.fbrStatus === 'Failed' ? (
-                        <span className="px-2 py-1 inline-flex text-[10px] leading-4 font-bold rounded uppercase tracking-wider bg-red-100 text-red-700">
-                          Failed
-                        </span>
+                        <div className="flex flex-col gap-0.5 items-start">
+                          <button
+                            type="button"
+                            onClick={() => invoice.fbrResponse && setViewingFbrInvoice(invoice)}
+                            className={`px-2 py-0.5 inline-flex text-[10px] leading-4 font-bold rounded uppercase tracking-wider bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors ${invoice.fbrResponse ? 'cursor-pointer' : ''}`}
+                            title={invoice.fbrResponse ? "Click to view saved FBR response JSON" : "Submitted to FBR"}
+                          >
+                            Submitted
+                          </button>
+                          {invoice.fbrInvoiceNo && (
+                            <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                              {invoice.fbrInvoiceNo}
+                            </span>
+                          )}
+                        </div>
+                      ) : (invoice.fbrStatus === 'Not Submitted' || invoice.fbrStatus === 'Failed') ? (
+                        <button
+                          type="button"
+                          onClick={() => invoice.fbrResponse && setViewingFbrInvoice(invoice)}
+                          className={`px-2 py-0.5 inline-flex text-[10px] leading-4 font-bold rounded uppercase tracking-wider bg-red-100 text-red-700 hover:bg-red-200 transition-colors ${invoice.fbrResponse ? 'cursor-pointer' : ''}`}
+                          title={invoice.fbrResponse ? "Click to view saved FBR response JSON" : "Not Submitted"}
+                        >
+                          Not Submitted
+                        </button>
                       ) : (
-                        <span className="text-xs text-slate-400">-</span>
+                        <span className="px-2 py-0.5 inline-flex text-[10px] leading-4 font-medium rounded text-slate-400 bg-slate-100">
+                          Not Submitted
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium flex items-center justify-end gap-3">
@@ -298,6 +319,39 @@ export default function Invoices() {
           action="download" 
           onClose={() => setActiveDownloadId(null)} 
         />
+      )}
+
+      {/* FBR Response JSON Modal */}
+      {viewingFbrInvoice && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Saved FBR Response JSON</h3>
+                <p className="text-xs text-slate-500 font-mono">Invoice #{viewingFbrInvoice.invoiceNumber} {viewingFbrInvoice.fbrInvoiceNo ? `(${viewingFbrInvoice.fbrInvoiceNo})` : ''}</p>
+              </div>
+              <button 
+                onClick={() => setViewingFbrInvoice(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-950">
+              <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap break-all">
+                {JSON.stringify(viewingFbrInvoice.fbrResponse || { status: viewingFbrInvoice.fbrStatus, fbrInvoiceNo: viewingFbrInvoice.fbrInvoiceNo }, null, 2)}
+              </pre>
+            </div>
+            <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button 
+                onClick={() => setViewingFbrInvoice(null)}
+                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
