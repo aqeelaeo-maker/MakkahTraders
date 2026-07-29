@@ -37,7 +37,7 @@ const InvoicePreview = React.memo(({
   return (
     <div 
       key={index}
-      className={`bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden flex flex-col box-border ${index > 0 ? 'break-before-page mt-8 print:mt-0' : ''}`}
+      className={`invoice-print-page bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden flex flex-col box-border ${index > 0 ? 'break-before-page mt-8 print:mt-0' : ''}`}
     >
       {/* Background Overlay */}
       {!company?.printOnLetterPad && company?.logoUrl && (
