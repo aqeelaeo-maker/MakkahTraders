@@ -328,7 +328,8 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                 <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
                   <div className="inline-block text-center">
                     <div className="w-full border-b border-gray-800 mb-1"></div>
-                    <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider">Authorized Signatory</span>
+                    <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider block">Authorized Signatory</span>
+                    <span className="text-[10px] text-gray-600 font-semibold block mt-1">Software Developed By : 0332-5059526</span>
                   </div>
                 </div>
               </div>
