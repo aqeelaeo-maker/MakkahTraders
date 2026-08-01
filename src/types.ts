@@ -114,6 +114,7 @@ export interface Invoice {
   fbrStatus?: 'Pending' | 'Submitted' | 'Failed' | 'Not Submitted';
   fbrInvoiceNo?: string;
   fbrResponse?: any;
+  invoiceType?: 'Inventory' | 'Services';
 }
 
 export interface StockTransaction {

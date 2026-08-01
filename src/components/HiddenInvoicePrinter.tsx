@@ -285,7 +285,7 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
             <div className="flex justify-between items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
               {/* Left side: FBR Logo & QR Code */}
               <div className="flex flex-col items-start justify-center pl-1 pt-1">
-                {invoiceTitle === 'SALES TAX INVOICE' && (
+                {invoiceTitle === 'BILL INVOICE' && (
                   <div className="flex items-center gap-3">
                     <FbrLogo className="w-32 h-32 object-contain" />
                     {showQrCode && (

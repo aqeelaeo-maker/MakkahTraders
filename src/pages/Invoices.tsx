@@ -141,6 +141,7 @@ export default function Invoices() {
               <tr className="text-[10px] font-bold text-slate-400 uppercase border-b border-slate-50 bg-slate-50/50">
                 <th className="px-6 py-3">Invoice</th>
                 <th className="px-6 py-3">Customer</th>
+                <th className="px-6 py-3">Invoice Type</th>
                 <th className="px-6 py-3">Created By</th>
                 <th className="px-6 py-3 text-right">Amount (PKR)</th>
                 <th className="px-6 py-3">FBR Status</th>
@@ -149,9 +150,9 @@ export default function Invoices() {
             </thead>
             <tbody className="text-sm text-slate-700">
               {loading ? (
-                <tr><td colSpan={6} className="px-6 py-4 text-center text-sm text-slate-500">Loading invoices...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-4 text-center text-sm text-slate-500">Loading invoices...</td></tr>
               ) : paginatedInvoices.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-4 text-center text-sm text-slate-500">No invoices found</td></tr>
+                <tr><td colSpan={7} className="px-6 py-4 text-center text-sm text-slate-500">No invoices found</td></tr>
               ) : (
                 paginatedInvoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
@@ -180,6 +181,15 @@ export default function Invoices() {
                           </>
                         )}
                       </div>
+                    </td>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 inline-flex text-[10px] leading-4 font-bold rounded uppercase tracking-wider ${
+                        invoice.invoiceType === 'Services'
+                          ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                          : 'bg-blue-100 text-blue-700 border border-blue-200'
+                      }`}>
+                        {invoice.invoiceType || 'Inventory'}
+                      </span>
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap">
                       <div className="text-sm text-slate-600 font-medium capitalize">{getCreatedByDisplay(invoice)}</div>

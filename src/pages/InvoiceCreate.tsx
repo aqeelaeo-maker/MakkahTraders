@@ -183,7 +183,7 @@ const InvoicePreview = React.memo(({
       <div className="flex justify-between items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
         {/* Left side: FBR Logo & QR Code */}
         <div className="flex flex-col items-start justify-center pl-1 pt-1">
-          {invoiceTitle === 'SALES TAX INVOICE' && (
+          {invoiceTitle === 'BILL INVOICE' && (
             <div className="flex items-center gap-3">
               <FbrLogo className="w-32 h-32 object-contain" />
               {showQrCode && (
@@ -261,6 +261,7 @@ export default function InvoiceCreate() {
   // Form State
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [invoiceType, setInvoiceType] = useState<'Inventory' | 'Services'>('Inventory');
   const [items, setItems] = useState<Partial<InvoiceItem>[]>([]);
   const [discount, setDiscount] = useState(0);
   const [status, setStatus] = useState<'Draft' | 'Paid' | 'Unpaid'>('Unpaid');
@@ -364,6 +365,7 @@ export default function InvoiceCreate() {
           const invData = invDoc.data() as Invoice;
           setInvoiceNumber(invData.invoiceNumber);
           setSelectedCustomerId(invData.customerId);
+          setInvoiceType(invData.invoiceType || 'Inventory');
           setItems(invData.items || []);
           setDiscount(invData.discount || 0);
           setStatus(invData.status);
@@ -401,6 +403,7 @@ export default function InvoiceCreate() {
         const compCode = companyData.companyCode || 'AMT';
         
         setInvoiceNumber(`${compCode}-${currentYear}-${formattedSeq}`);
+        setInvoiceType('Inventory');
         setDate(Date.now());
         setItems([]);
       }
@@ -537,6 +540,7 @@ export default function InvoiceCreate() {
           ? invoiceCreatedBy 
           : (activeSubUser?.username || (activeSubUser?.id === 'user2' || activeSubUser?.role === 'staff' ? 'user2' : 'user1')),
         status,
+        invoiceType,
         fbrStatus: currentFbrStatus,
         fbrInvoiceNo: currentFbrInvoiceNo,
         fbrResponse: currentFbrResponse
@@ -863,14 +867,27 @@ export default function InvoiceCreate() {
                 </div>
               )}
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Invoice No</label>
-              <input 
-                type="text" 
-                value={invoiceNumber}
-                readOnly
-                className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-100 font-mono font-medium text-slate-600"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Invoice No</label>
+                <input 
+                  type="text" 
+                  value={invoiceNumber}
+                  readOnly
+                  className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-100 font-mono font-medium text-slate-600"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Invoice Type</label>
+                <select
+                  value={invoiceType}
+                  onChange={(e) => setInvoiceType(e.target.value as 'Inventory' | 'Services')}
+                  className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-50 font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="Inventory">Inventory</option>
+                  <option value="Services">Services</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1057,6 +1074,7 @@ export default function InvoiceCreate() {
                 totalTax={totalTax}
                 discount={discount}
                 netTotal={netTotal}
+                invoiceType={invoiceType}
               />
             ))}
           </div>
