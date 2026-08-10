@@ -36,12 +36,22 @@ export default function Dashboard() {
         });
 
         if (activeSubUser?.role === 'staff') {
-          const staffUsername = activeSubUser.username || 'user2';
-          fetchedInvoices = fetchedInvoices.filter(inv => 
-            inv.createdBy === staffUsername || 
-            inv.createdBy === 'user2' || 
-            inv.createdBy === activeSubUser.id
-          );
+          const staffUsername = (activeSubUser.username || 'user2').toLowerCase();
+          const u2 = companyProfile?.subUsers?.find((u: any) => u.id === 'user2' || u.role === 'staff');
+          const staffProfileUsername = u2?.username?.toLowerCase();
+
+          fetchedInvoices = fetchedInvoices.filter(inv => {
+            if (!inv.createdBy) return false;
+            const cb = inv.createdBy.toLowerCase();
+            return (
+              cb === 'user2' ||
+              cb === 'staff' ||
+              cb === 'staff user' ||
+              cb === staffUsername ||
+              (staffProfileUsername && cb === staffProfileUsername) ||
+              (activeSubUser.id && cb === activeSubUser.id.toLowerCase())
+            );
+          });
         }
 
         fetchedInvoices.sort((a, b) => b.date - a.date);

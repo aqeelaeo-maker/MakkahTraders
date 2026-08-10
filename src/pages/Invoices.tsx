@@ -35,12 +35,22 @@ export default function Invoices() {
       const snapshot = await getDocs(q);
       let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
       if (activeSubUser?.role === 'staff') {
-        const staffUsername = activeSubUser.username || 'user2';
-        data = data.filter(inv => 
-          inv.createdBy === staffUsername || 
-          inv.createdBy === 'user2' || 
-          inv.createdBy === activeSubUser.id
-        );
+        const staffUsername = (activeSubUser.username || 'user2').toLowerCase();
+        const u2 = companyProfile?.subUsers?.find((u: any) => u.id === 'user2' || u.role === 'staff');
+        const staffProfileUsername = u2?.username?.toLowerCase();
+
+        data = data.filter(inv => {
+          if (!inv.createdBy) return false;
+          const cb = inv.createdBy.toLowerCase();
+          return (
+            cb === 'user2' ||
+            cb === 'staff' ||
+            cb === 'staff user' ||
+            cb === staffUsername ||
+            (staffProfileUsername && cb === staffProfileUsername) ||
+            (activeSubUser.id && cb === activeSubUser.id.toLowerCase())
+          );
+        });
       }
       data.sort((a, b) => (b.invoiceNumber || '').localeCompare(a.invoiceNumber || '', undefined, { numeric: true }));
       setInvoices(data);
@@ -58,24 +68,30 @@ export default function Invoices() {
     const u1Name = u1?.username || 'user1';
     const u2Name = u2?.username || 'user2';
 
+    if (!inv.createdBy) return u1Name;
+    const cb = inv.createdBy.toLowerCase();
+
     if (
-      inv.createdBy === 'user2' || 
-      inv.createdBy === 'staff' || 
-      (u2?.username && inv.createdBy === u2.username)
+      cb === 'user2' || 
+      cb === 'staff' || 
+      cb === 'staff user' ||
+      cb === u2Name.toLowerCase() ||
+      (u2?.id && cb === u2.id.toLowerCase())
     ) {
       return u2Name;
     }
     
     if (
-      inv.createdBy === 'user1' || 
-      inv.createdBy === 'owner' || 
-      inv.createdBy === 'Owner' || 
-      (u1?.username && inv.createdBy === u1.username)
+      cb === 'user1' || 
+      cb === 'owner' || 
+      cb === 'admin' ||
+      cb === u1Name.toLowerCase() ||
+      (u1?.id && cb === u1.id.toLowerCase())
     ) {
       return u1Name;
     }
 
-    if (inv.createdBy === auth.currentUser?.uid || !inv.createdBy || inv.createdBy === 'unknown') {
+    if (inv.createdBy === auth.currentUser?.uid || inv.createdBy === 'unknown') {
       return u1Name;
     }
 

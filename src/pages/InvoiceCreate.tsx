@@ -548,7 +548,7 @@ export default function InvoiceCreate() {
         netTotal,
         createdBy: (id && invoiceCreatedBy) 
           ? invoiceCreatedBy 
-          : (activeSubUser?.username || (activeSubUser?.id === 'user2' || activeSubUser?.role === 'staff' ? 'user2' : 'user1')),
+          : (activeSubUser?.username || ((activeSubUser?.id === 'user2' || activeSubUser?.role === 'staff') ? 'user2' : 'user1')),
         status,
         invoiceType,
         fbrStatus: currentFbrStatus,
