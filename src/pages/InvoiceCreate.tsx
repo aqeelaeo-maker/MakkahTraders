@@ -109,7 +109,7 @@ const InvoicePreview = React.memo(({
             <span className="text-[16px] font-bold text-gray-900 leading-none text-right">{invoiceNumber}</span>
             
             <span className="font-semibold text-gray-600">Date:</span>
-            <span className="border-b border-gray-900 w-full"></span>
+            <span className="text-[14px] font-bold text-gray-900 leading-none text-right">{date ? format(new Date(date), 'dd/MM/yyyy') : ''}</span>
             
             {displayFbrInvNo && (
               <>
@@ -266,6 +266,15 @@ export default function InvoiceCreate() {
   const [discount, setDiscount] = useState(0);
   const [status, setStatus] = useState<'Draft' | 'Paid' | 'Unpaid'>('Unpaid');
   const [date, setDate] = useState<number>(Date.now());
+
+  const formatDateForInput = (timestamp: number) => {
+    if (!timestamp) return new Date().toISOString().split('T')[0];
+    const d = new Date(timestamp);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const customerDropdownRef = useRef<HTMLDivElement>(null);
@@ -521,7 +530,7 @@ export default function InvoiceCreate() {
       const invoiceData: Omit<Invoice, 'id'> = {
         userId: auth.currentUser?.uid,
         invoiceNumber,
-        date: id ? date : Date.now(),
+        date: date || Date.now(),
         customerId: selectedCustomerId,
         customerName: customer?.name || '',
         customerType: customer?.customerType || 'other',
@@ -867,7 +876,7 @@ export default function InvoiceCreate() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Invoice No</label>
                 <input 
@@ -875,6 +884,22 @@ export default function InvoiceCreate() {
                   value={invoiceNumber}
                   readOnly
                   className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-100 font-mono font-medium text-slate-600"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Invoice Date</label>
+                <input 
+                  type="date" 
+                  value={formatDateForInput(date)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      const [year, month, day] = val.split('-').map(Number);
+                      const newDate = new Date(year, month - 1, day, 12, 0, 0);
+                      setDate(newDate.getTime());
+                    }
+                  }}
+                  className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-50 font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div>

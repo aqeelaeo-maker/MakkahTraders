@@ -11,6 +11,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [showSecurityToken, setShowSecurityToken] = useState(false);
+  const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({});
   const [profile, setProfile] = useState<CompanyProfile>({
     name: '',
     companyCode: '',
@@ -281,34 +282,34 @@ export default function Settings() {
             )}
           </div>
 
-          {(!activeSubUser || activeSubUser.role === 'owner') && (
-            <div className="pt-6 mt-6 border-t border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center uppercase tracking-widest mb-4">
-                <Users className="w-4 h-4 mr-2 text-indigo-500" />
-                User Access
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                {profile.subUsers?.map((subUser, index) => (
-                  <div key={subUser.id} className="space-y-4">
-                    <h4 className="text-xs font-bold text-slate-700 uppercase">{subUser.role === 'owner' ? 'User 1 (Owner)' : 'User 2 (Staff)'}</h4>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Username</label>
+          <div className="pt-6 mt-6 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center uppercase tracking-widest mb-4">
+              <Users className="w-4 h-4 mr-2 text-indigo-500" />
+              User Access
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              {profile.subUsers?.map((subUser, index) => (
+                <div key={subUser.id} className="space-y-4">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase">{subUser.role === 'owner' ? 'User 1 (Owner)' : 'User 2 (Staff)'}</h4>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Username</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={subUser.username} 
+                      onChange={e => {
+                        const newSubUsers = [...(profile.subUsers || [])];
+                        newSubUsers[index] = { ...subUser, username: e.target.value };
+                        setProfile({ ...profile, subUsers: newSubUsers });
+                      }} 
+                      className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Password</label>
+                    <div className="relative">
                       <input 
-                        type="text" 
-                        required 
-                        value={subUser.username} 
-                        onChange={e => {
-                          const newSubUsers = [...(profile.subUsers || [])];
-                          newSubUsers[index] = { ...subUser, username: e.target.value };
-                          setProfile({ ...profile, subUsers: newSubUsers });
-                        }} 
-                        className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500" 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Password</label>
-                      <input 
-                        type="password" 
+                        type={showPasswords[subUser.id] ? "text" : "password"} 
                         required 
                         value={subUser.password || ''} 
                         onChange={e => {
@@ -316,14 +317,22 @@ export default function Settings() {
                           newSubUsers[index] = { ...subUser, password: e.target.value };
                           setProfile({ ...profile, subUsers: newSubUsers });
                         }} 
-                        className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500" 
+                        className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 pr-10" 
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, [subUser.id]: !prev[subUser.id] }))}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                        title={showPasswords[subUser.id] ? "Hide Password" : "Show Password"}
+                      >
+                        {showPasswords[subUser.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
 
           <div className="pt-5 border-t border-slate-100">
             <div className="flex justify-end">
