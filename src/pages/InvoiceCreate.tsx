@@ -18,6 +18,7 @@ const InvoicePreview = React.memo(({
   company,
   selectedCustomerDetails,
   invoiceNumber,
+  date,
   fbrInvoiceNo,
   fbrResponse,
   fbrStatus,
@@ -1091,6 +1092,7 @@ export default function InvoiceCreate() {
                 company={company}
                 selectedCustomerDetails={selectedCustomerDetails}
                 invoiceNumber={invoiceNumber}
+                date={date}
                 fbrInvoiceNo={fbrInvoiceNo}
                 fbrResponse={fbrResponse}
                 fbrStatus={fbrStatus}

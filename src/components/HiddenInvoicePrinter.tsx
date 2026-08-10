@@ -211,7 +211,7 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
                   <span className="text-[16px] font-bold text-gray-900 leading-none text-right">{invoice.invoiceNumber}</span>
                   
                   <span className="font-semibold text-gray-600">Date:</span>
-                  <span className="border-b border-gray-900 w-full"></span>
+                  <span className="text-[14px] font-bold text-gray-900 leading-none text-right">{invoice.date ? format(new Date(invoice.date), 'dd/MM/yyyy') : ''}</span>
 
                   {displayFbrInvNo && (
                     <>
