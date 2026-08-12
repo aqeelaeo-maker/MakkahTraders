@@ -69,6 +69,7 @@ export default function Layout() {
           }
 
           const today = new Date();
+          const isExpired = today > expDate;
           const diffMs = expDate.getTime() - today.getTime();
           const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
@@ -83,7 +84,7 @@ export default function Layout() {
             }
           } else {
             if (docSnap.exists()) {
-              if (days < 0) {
+              if (isExpired || days < 0) {
                 setIsAuthorized(false);
                 setIsPackageExpired(true);
                 setDaysRemaining(0);
@@ -341,7 +342,7 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-4 ml-auto">
-            {daysRemaining !== null && (
+            {daysRemaining !== null && daysRemaining < 3 && (
               <span className="text-red-600 font-bold text-sm sm:text-base animate-blink">
                 your package will expire in {daysRemaining} Days.
               </span>
