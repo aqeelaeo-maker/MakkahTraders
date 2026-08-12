@@ -17,10 +17,13 @@ import { signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { CompanyProfile, SubUser } from '../types';
 import SubUserLogin from './SubUserLogin';
+import { format } from 'date-fns';
 
 export default function Layout() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [isPackageExpired, setIsPackageExpired] = useState<boolean>(false);
+  const [expiryDateFormatted, setExpiryDateFormatted] = useState<string>('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
   const [activeSubUser, setActiveSubUser] = useState<SubUser | null>(null);
@@ -35,19 +38,53 @@ export default function Layout() {
         setUser(currentUser);
         if (currentUser.email?.toLowerCase() === 'aqeelaeo@gmail.com') {
           setIsAuthorized(true);
+          setIsPackageExpired(false);
         } else {
           try {
             const emailLower = currentUser.email?.toLowerCase() || '';
             const docRef = doc(db, 'authorized_users', emailLower);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
-              setIsAuthorized(true);
+              const data = docSnap.data();
+              if (data.packageExpiry) {
+                let expDate: Date | null = null;
+                if (typeof data.packageExpiry === 'string') {
+                  expDate = new Date(data.packageExpiry + 'T23:59:59');
+                } else if (data.packageExpiry?.toDate) {
+                  expDate = data.packageExpiry.toDate();
+                } else if (typeof data.packageExpiry === 'number') {
+                  expDate = new Date(data.packageExpiry);
+                }
+
+                if (expDate && !isNaN(expDate.getTime())) {
+                  if (new Date() > expDate) {
+                    setIsAuthorized(false);
+                    setIsPackageExpired(true);
+                    try {
+                      setExpiryDateFormatted(format(expDate, 'dd MMM yyyy'));
+                    } catch (e) {
+                      setExpiryDateFormatted(data.packageExpiry);
+                    }
+                  } else {
+                    setIsAuthorized(true);
+                    setIsPackageExpired(false);
+                  }
+                } else {
+                  setIsAuthorized(true);
+                  setIsPackageExpired(false);
+                }
+              } else {
+                setIsAuthorized(true);
+                setIsPackageExpired(false);
+              }
             } else {
               setIsAuthorized(false);
+              setIsPackageExpired(false);
             }
           } catch (e) {
             console.error("Authorization check failed:", e);
             setIsAuthorized(false);
+            setIsPackageExpired(false);
           }
         }
       }
@@ -135,6 +172,31 @@ export default function Layout() {
   }
 
   if (isAuthorized === false) {
+    if (isPackageExpired) {
+      return (
+        <div className="flex items-center justify-center h-screen bg-slate-50 p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-100">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Package Expired</h2>
+            <p className="text-slate-600 mb-6 text-sm leading-relaxed">
+              Your subscription package for <span className="font-semibold text-slate-800">{user.email}</span> expired on <span className="font-bold text-red-600">{expiryDateFormatted}</span>.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mb-6 text-left">
+              Please contact Super Admin <span className="font-bold">aqeelaeo@gmail.com</span> to renew your package access.
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-100">

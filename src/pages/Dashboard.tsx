@@ -7,7 +7,7 @@ import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, end
 import * as XLSX from 'xlsx';
 
 export default function Dashboard() {
-  const { activeSubUser } = useOutletContext<any>() || {};
+  const { activeSubUser, companyProfile } = useOutletContext<any>() || {};
   const [stats, setStats] = useState({
     totalSales: 0,
     taxCollected: 0,
