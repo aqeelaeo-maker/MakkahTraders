@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Store,
-  ShieldAlert
+  ShieldAlert,
+  AlertCircle
 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -24,6 +25,7 @@ export default function Layout() {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [isPackageExpired, setIsPackageExpired] = useState<boolean>(false);
   const [expiryDateFormatted, setExpiryDateFormatted] = useState<string>('');
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
   const [activeSubUser, setActiveSubUser] = useState<SubUser | null>(null);
@@ -36,61 +38,93 @@ export default function Layout() {
         navigate('/login');
       } else {
         setUser(currentUser);
-        if (currentUser.email?.toLowerCase() === 'aqeelaeo@gmail.com') {
-          setIsAuthorized(true);
-          setIsPackageExpired(false);
-        } else {
-          try {
-            const emailLower = currentUser.email?.toLowerCase() || '';
-            const docRef = doc(db, 'authorized_users', emailLower);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-              if (data.packageExpiry) {
-                let expDate: Date | null = null;
-                if (typeof data.packageExpiry === 'string') {
-                  expDate = new Date(data.packageExpiry + 'T23:59:59');
-                } else if (data.packageExpiry?.toDate) {
-                  expDate = data.packageExpiry.toDate();
-                } else if (typeof data.packageExpiry === 'number') {
-                  expDate = new Date(data.packageExpiry);
-                }
+        const emailLower = currentUser.email?.toLowerCase() || '';
 
-                if (expDate && !isNaN(expDate.getTime())) {
-                  if (new Date() > expDate) {
-                    setIsAuthorized(false);
-                    setIsPackageExpired(true);
-                    try {
-                      setExpiryDateFormatted(format(expDate, 'dd MMM yyyy'));
-                    } catch (e) {
-                      setExpiryDateFormatted(data.packageExpiry);
-                    }
-                  } else {
-                    setIsAuthorized(true);
-                    setIsPackageExpired(false);
-                  }
-                } else {
-                  setIsAuthorized(true);
-                  setIsPackageExpired(false);
+        try {
+          const docRef = doc(db, 'authorized_users', emailLower);
+          const docSnap = await getDoc(docRef);
+
+          let expDate: Date | null = null;
+          let expiryRaw: any = null;
+
+          if (docSnap.exists()) {
+            expiryRaw = docSnap.data()?.packageExpiry;
+          }
+
+          if (expiryRaw) {
+            if (typeof expiryRaw === 'string') {
+              expDate = new Date(expiryRaw + 'T23:59:59');
+            } else if (expiryRaw?.toDate) {
+              expDate = expiryRaw.toDate();
+            } else if (typeof expiryRaw === 'number') {
+              expDate = new Date(expiryRaw);
+            }
+          }
+
+          if (!expDate) {
+            // Default 1 year if not set
+            const defaultExp = new Date();
+            defaultExp.setFullYear(defaultExp.getFullYear() + 1);
+            expDate = defaultExp;
+          }
+
+          const today = new Date();
+          const diffMs = expDate.getTime() - today.getTime();
+          const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+          if (emailLower === 'aqeelaeo@gmail.com') {
+            setIsAuthorized(true);
+            setIsPackageExpired(false);
+            setDaysRemaining(Math.max(0, days));
+            try {
+              setExpiryDateFormatted(format(expDate, 'dd MMM yyyy'));
+            } catch (e) {
+              setExpiryDateFormatted(String(expiryRaw || ''));
+            }
+          } else {
+            if (docSnap.exists()) {
+              if (days < 0) {
+                setIsAuthorized(false);
+                setIsPackageExpired(true);
+                setDaysRemaining(0);
+                try {
+                  setExpiryDateFormatted(format(expDate, 'dd MMM yyyy'));
+                } catch (e) {
+                  setExpiryDateFormatted(String(expiryRaw || ''));
                 }
               } else {
                 setIsAuthorized(true);
                 setIsPackageExpired(false);
+                setDaysRemaining(Math.max(0, days));
+                try {
+                  setExpiryDateFormatted(format(expDate, 'dd MMM yyyy'));
+                } catch (e) {
+                  setExpiryDateFormatted(String(expiryRaw || ''));
+                }
               }
             } else {
               setIsAuthorized(false);
               setIsPackageExpired(false);
+              setDaysRemaining(null);
             }
-          } catch (e) {
-            console.error("Authorization check failed:", e);
+          }
+        } catch (e) {
+          console.error("Authorization check failed:", e);
+          if (emailLower === 'aqeelaeo@gmail.com') {
+            setIsAuthorized(true);
+            setIsPackageExpired(false);
+            setDaysRemaining(365);
+          } else {
             setIsAuthorized(false);
             setIsPackageExpired(false);
+            setDaysRemaining(null);
           }
         }
       }
     });
     return () => unsubscribe();
   }, [navigate]);
+
 
   useEffect(() => {
     if (isAuthorized && user) {
@@ -306,8 +340,12 @@ export default function Layout() {
               </div>
             </div>
           </div>
-          <div className="flex gap-4">
-             {/* Page specific actions can go here if moved to Context, otherwise handled inside Outlet */}
+          <div className="flex items-center gap-4 ml-auto">
+            {daysRemaining !== null && (
+              <span className="text-red-600 font-bold text-sm sm:text-base animate-blink">
+                your package will expire in {daysRemaining} Days.
+              </span>
+            )}
           </div>
         </header>
 
