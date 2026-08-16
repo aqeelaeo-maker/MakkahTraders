@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useOutletContext } from 'react-router';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { Invoice } from '../types';
+import { Invoice, Product, Customer } from '../types';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import * as XLSX from 'xlsx';
 
@@ -15,6 +15,8 @@ export default function Dashboard() {
     pendingFilings: 0,
   });
   const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [customersList, setCustomersList] = useState<Customer[]>([]);
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [reportRange, setReportRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
@@ -57,11 +59,25 @@ export default function Dashboard() {
         fetchedInvoices.sort((a, b) => b.date - a.date);
         setAllInvoices(fetchedInvoices);
 
+        // Fetch products
+        const productsRef = query(collection(db, 'products'), where('userId', '==', userId));
+        const productsSnapshot = await getDocs(productsRef);
+        const fetchedProducts: Product[] = [];
+        productsSnapshot.forEach(doc => {
+          fetchedProducts.push({ id: doc.id, ...doc.data() } as Product);
+        });
+        setProductsList(fetchedProducts);
+
         // Fetch customers
         const customersRef = query(collection(db, 'customers'), where('userId', '==', userId));
         const customersSnapshot = await getDocs(customersRef);
+        const fetchedCustomers: Customer[] = [];
+        customersSnapshot.forEach(doc => {
+          fetchedCustomers.push({ id: doc.id, ...doc.data() } as Customer);
+        });
+        setCustomersList(fetchedCustomers);
 
-        setStats(prev => ({ ...prev, activeCustomers: customersSnapshot.size }));
+        setStats(prev => ({ ...prev, activeCustomers: fetchedCustomers.length }));
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -71,6 +87,26 @@ export default function Dashboard() {
 
     fetchDashboardData();
   }, []);
+
+  const productsMap = useMemo(() => {
+    const map = new Map<string, Product>();
+    productsList.forEach(p => {
+      if (p.id) map.set(p.id, p);
+      if (p.code) map.set(p.code.toLowerCase().trim(), p);
+      if (p.name) map.set(p.name.toLowerCase().trim(), p);
+    });
+    return map;
+  }, [productsList]);
+
+  const customersMap = useMemo(() => {
+    const map = new Map<string, Customer>();
+    customersList.forEach(c => {
+      if (c.id) map.set(c.id, c);
+      if (c.customerId) map.set(c.customerId, c);
+      if (c.name) map.set(c.name.toLowerCase().trim(), c);
+    });
+    return map;
+  }, [customersList]);
 
   useEffect(() => {
     const now = new Date();
@@ -161,17 +197,58 @@ export default function Dashboard() {
       isWithinInterval(new Date(invoice.date), { start, end })
     );
 
-    const data = filteredInvoices.map(inv => ({
-      'Invoice No': inv.invoiceNumber,
-      'Date': format(new Date(inv.date), 'dd MMM yyyy'),
-      'Customer Name': inv.customerName,
-      'Amount (Excl. Tax)': inv.subtotal - inv.discount,
-      'Tax Amount': inv.taxAmount,
-      'Total Amount': inv.netTotal,
-      'Status': inv.status
-    }));
+    if (filteredInvoices.length === 0) {
+      alert(`No invoices found for the selected ${reportRange} period.`);
+      return;
+    }
 
-    const ws = XLSX.utils.json_to_sheet(data);
+    const maxItems = Math.max(
+      1,
+      ...filteredInvoices.map(inv => (inv.items && inv.items.length > 0 ? inv.items.length : 1))
+    );
+
+    const excelData = filteredInvoices.map(inv => {
+      const row: Record<string, any> = {
+        'Invoice No': inv.invoiceNumber,
+        'Date': format(new Date(inv.date), 'dd MMM yyyy'),
+        'Customer Name': inv.customerName,
+      };
+
+      for (let i = 0; i < maxItems; i++) {
+        const item = inv.items && inv.items[i];
+        const num = i + 1;
+        if (item) {
+          const prod = productsMap.get(item.productId) || (item.productName ? productsMap.get(item.productName.toLowerCase().trim()) : undefined);
+          row[`Product ${num}`] = item.productName || prod?.name || '-';
+          row[`HS Code ${num}`] = prod?.hsCode || (item as any).hsCode || '-';
+          row[`Uom ${num}`] = prod?.unit || (item as any).unit || 'pcs';
+        } else {
+          row[`Product ${num}`] = '';
+          row[`HS Code ${num}`] = '';
+          row[`Uom ${num}`] = '';
+        }
+      }
+
+      row['Amount (Excl. Tax)'] = inv.subtotal - (inv.discount || 0);
+      row['Tax Amount'] = inv.taxAmount || 0;
+      row['Total Amount'] = inv.netTotal || 0;
+      row['Status'] = inv.status;
+      row['FBR Status'] = inv.fbrStatus || 'Not Submitted';
+      row['FBR Invoice No'] = inv.fbrInvoiceNo || '-';
+
+      return row;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const colKeys = Object.keys(excelData[0] || {});
+    ws['!cols'] = colKeys.map(key => {
+      const maxLen = Math.max(
+        key.length,
+        ...excelData.map(r => String((r as any)[key] ?? '').length)
+      );
+      return { wch: Math.min(Math.max(maxLen + 3, 12), 50) };
+    });
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Report');
     XLSX.writeFile(wb, `${reportRange}_report_${format(new Date(), 'yyyyMMdd')}.xlsx`);
