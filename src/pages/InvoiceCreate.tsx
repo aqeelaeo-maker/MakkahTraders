@@ -110,7 +110,7 @@ const InvoicePreview = React.memo(({
             <span className="text-[16px] font-bold text-gray-900 leading-none text-right">{invoiceNumber}</span>
             
             <span className="font-semibold text-gray-600">Date:</span>
-            <span className="text-[14px] font-bold text-gray-900 leading-none text-right">{date ? format(new Date(date), 'dd/MM/yyyy') : ''}</span>
+            <span className="text-[14px] font-bold text-gray-900 leading-none text-right tracking-wider">___________________</span>
             
             {displayFbrInvNo && (
               <>
