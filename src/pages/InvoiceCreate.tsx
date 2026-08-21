@@ -515,6 +515,11 @@ export default function InvoiceCreate() {
     overrideFbrInvoiceNo?: string,
     overrideFbrResponse?: any
   ) => {
+    if (!invoiceNumber || !invoiceNumber.trim()) {
+      alert("Please enter an Invoice Number.");
+      return null;
+    }
+
     if (!selectedCustomerId || items.length === 0 || !items[0].productId) {
       alert("Please select customer and add at least one product.");
       return null;
@@ -530,7 +535,7 @@ export default function InvoiceCreate() {
 
       const invoiceData: Omit<Invoice, 'id'> = {
         userId: auth.currentUser?.uid,
-        invoiceNumber,
+        invoiceNumber: invoiceNumber.trim(),
         date: date || Date.now(),
         customerId: selectedCustomerId,
         customerName: customer?.name || '',
@@ -883,8 +888,9 @@ export default function InvoiceCreate() {
                 <input 
                   type="text" 
                   value={invoiceNumber}
-                  readOnly
-                  className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-100 font-mono font-medium text-slate-600"
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  placeholder="e.g. AMT-2026-0001"
+                  className="block w-full text-sm border-slate-200 rounded-lg py-2 px-3 border bg-slate-50 font-mono font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div>
