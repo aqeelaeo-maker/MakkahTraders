@@ -59,6 +59,11 @@
     box-sizing: border-box !important;
     margin: 0 !important;
   }
+
+  .break-before-page {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
 }
 
 @media screen {

@@ -11,6 +11,7 @@ import Barcode from 'react-barcode';
 import { format } from 'date-fns';
 import FbrLogo from '../components/FbrLogo';
 import { formatAmount } from '../utils/format';
+import { paginateSalesTaxItems } from '../utils/invoicePagination';
 
 const InvoicePreview = React.memo(({ 
   invoiceTitle, 
@@ -26,7 +27,11 @@ const InvoicePreview = React.memo(({
   subtotal,
   totalTax,
   discount,
-  netTotal
+  netTotal,
+  pageNumber = 1,
+  totalSalesTaxPages = 1,
+  startIndex = 0,
+  isLastPage = true,
 }: any) => {
   const displayFbrInvNo = (fbrInvoiceNo && fbrInvoiceNo !== 'SUBMITTED') 
     ? fbrInvoiceNo 
@@ -127,6 +132,11 @@ const InvoicePreview = React.memo(({
 
       <div className="text-center mb-4 mt-2 relative z-10">
         <h2 className="text-4xl font-black text-black uppercase tracking-widest leading-none">{invoiceTitle}</h2>
+        {invoiceTitle === 'SALES TAX INVOICE' && totalSalesTaxPages > 1 && (
+          <span className="text-[13px] font-bold text-gray-700 block mt-1 tracking-wider uppercase">
+            Page {pageNumber} of {totalSalesTaxPages}
+          </span>
+        )}
       </div>
 
       {/* Table */}
@@ -147,7 +157,7 @@ const InvoicePreview = React.memo(({
           <tbody>
             {items.map((item: any, idx: number) => (
               <tr key={idx} className="border-b border-gray-800">
-                <td className="py-2 px-2">{idx + 1}</td>
+                <td className="py-2 px-2">{startIndex + idx + 1}</td>
                 <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
                 <td className="py-2 px-2 text-center">{item.qty || 0}</td>
                 <td className="py-2 px-2 text-right">{formatAmount(item.unitPrice)}</td>
@@ -182,9 +192,9 @@ const InvoicePreview = React.memo(({
 
       {/* Totals & Footer Info */}
       <div className="flex justify-between items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
-        {/* Left side: FBR Logo & QR Code */}
+        {/* Left side: FBR Logo & QR Code (only on BILL INVOICE) or Continuation notice */}
         <div className="flex flex-col items-start justify-center pl-1 pt-1">
-          {invoiceTitle === 'BILL INVOICE' && (
+          {invoiceTitle === 'BILL INVOICE' ? (
             <div className="flex items-center gap-3">
               <FbrLogo className="w-32 h-32 object-contain" />
               {showQrCode && (
@@ -198,40 +208,54 @@ const InvoicePreview = React.memo(({
                 </div>
               )}
             </div>
+          ) : (
+            !isLastPage && (
+              <div className="text-[13px] font-bold text-gray-600 italic py-2">
+                (Continued on Page {pageNumber + 1}...)
+              </div>
+            )
           )}
         </div>
 
-        {/* Right side: Totals Box */}
-        <div className="w-[60%]">
-          <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
-            <div className="flex justify-between py-1.5 items-center">
-              <span className="font-bold text-gray-700 text-[18px]">Total Excl. Sales Tax:</span>
-              <span className="font-bold text-[20px]">{formatAmount(subtotal)}</span>
-            </div>
-            <div className="flex justify-between py-1.5 border-b border-gray-300 items-center">
-              <span className="font-bold text-gray-700 text-[18px]">Total Sales Tax:</span>
-              <span className="font-bold text-[20px]">{formatAmount(totalTax)}</span>
-            </div>
-            {discount > 0 && (
-              <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600 items-center">
-                <span className="font-bold text-[18px]">Discount:</span>
-                <span className="font-bold text-[20px]">-{formatAmount(discount)}</span>
+        {/* Right side: Totals Box (shown on BILL INVOICE and on final SALES TAX INVOICE page) */}
+        {isLastPage || invoiceTitle === 'BILL INVOICE' ? (
+          <div className="w-[60%]">
+            <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
+              <div className="flex justify-between py-1.5 items-center">
+                <span className="font-bold text-gray-700 text-[18px]">Total Excl. Sales Tax:</span>
+                <span className="font-bold text-[20px]">{formatAmount(subtotal)}</span>
               </div>
-            )}
-            <div className="flex justify-between py-3 text-[18px] font-black text-gray-900 items-center">
-              <span>Total Value Incl. Tax:</span>
-              <span>PKR {formatAmount(netTotal)}</span>
+              <div className="flex justify-between py-1.5 border-b border-gray-300 items-center">
+                <span className="font-bold text-gray-700 text-[18px]">Total Sales Tax:</span>
+                <span className="font-bold text-[20px]">{formatAmount(totalTax)}</span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600 items-center">
+                  <span className="font-bold text-[18px]">Discount:</span>
+                  <span className="font-bold text-[20px]">-{formatAmount(discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between py-3 text-[18px] font-black text-gray-900 items-center">
+                <span>Total Value Incl. Tax:</span>
+                <span>PKR {formatAmount(netTotal)}</span>
+              </div>
+            </div>
+            
+            <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
+              <div className="inline-block text-center">
+                <div className="w-full border-b border-gray-800 mb-1"></div>
+                <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider block">Authorized Signatory</span>
+                <span className="text-[10px] text-gray-600 font-semibold block mt-1">Software Developed By : 0332-5059526</span>
+              </div>
             </div>
           </div>
-          
-          <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
-            <div className="inline-block text-center">
-              <div className="w-full border-b border-gray-800 mb-1"></div>
-              <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider block">Authorized Signatory</span>
-              <span className="text-[10px] text-gray-600 font-semibold block mt-1">Software Developed By : 0332-5059526</span>
-            </div>
+        ) : (
+          <div className="inline-block text-center self-end">
+            <div className="w-48 border-b border-gray-800 mb-1"></div>
+            <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider block">Authorized Signatory</span>
+            <span className="text-[10px] text-gray-600 font-semibold block mt-1">Software Developed By : 0332-5059526</span>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -758,14 +782,24 @@ export default function InvoiceCreate() {
     if (!invoiceRef.current) return;
     
     try {
-      const dataUrl = await toPng(invoiceRef.current, { cacheBust: true, pixelRatio: 2 });
       const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const imgProps = pdf.getImageProperties(dataUrl);
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pageElements = invoiceRef.current.querySelectorAll<HTMLElement>('.invoice-print-page');
+
+      if (pageElements.length > 0) {
+        for (let i = 0; i < pageElements.length; i++) {
+          if (i > 0) pdf.addPage();
+          const dataUrl = await toPng(pageElements[i], { cacheBust: true, pixelRatio: 2 });
+          pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        }
+      } else {
+        const dataUrl = await toPng(invoiceRef.current, { cacheBust: true, pixelRatio: 2 });
+        const imgProps = pdf.getImageProperties(dataUrl);
+        const h = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, h);
+      }
       
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${invoiceNumber || 'invoice'}.pdf`);
     } catch (err) {
       console.error(err);
@@ -774,6 +808,7 @@ export default function InvoiceCreate() {
   };
 
   const selectedCustomerDetails = customers.find(c => c.id === selectedCustomerId);
+  const salesTaxPages = paginateSalesTaxItems(items);
   
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -1090,11 +1125,12 @@ export default function InvoiceCreate() {
             ref={invoiceRef} 
             className="print-container flex flex-col z-0 w-[210mm]"
           >
-            {['SALES TAX INVOICE', 'BILL INVOICE'].map((invoiceTitle, index) => (
+            {/* SALES TAX INVOICE pages (dynamic pagination across multiple pages if items exceed 1 page) */}
+            {salesTaxPages.map((pageData, pIdx) => (
               <InvoicePreview
-                key={index}
-                invoiceTitle={invoiceTitle}
-                index={index}
+                key={`sales-tax-${pageData.pageNumber}`}
+                invoiceTitle="SALES TAX INVOICE"
+                index={pIdx}
                 company={company}
                 selectedCustomerDetails={selectedCustomerDetails}
                 invoiceNumber={invoiceNumber}
@@ -1102,14 +1138,42 @@ export default function InvoiceCreate() {
                 fbrInvoiceNo={fbrInvoiceNo}
                 fbrResponse={fbrResponse}
                 fbrStatus={fbrStatus}
-                items={items}
+                items={pageData.items}
                 subtotal={subtotal}
                 totalTax={totalTax}
                 discount={discount}
                 netTotal={netTotal}
                 invoiceType={invoiceType}
+                pageNumber={pageData.pageNumber}
+                totalSalesTaxPages={pageData.totalSalesTaxPages}
+                startIndex={pageData.startIndex}
+                isLastPage={pageData.isLastPage}
               />
             ))}
+
+            {/* Dedicated BILL INVOICE page (never receives overflow items) */}
+            <InvoicePreview
+              key="bill-invoice"
+              invoiceTitle="BILL INVOICE"
+              index={salesTaxPages.length}
+              company={company}
+              selectedCustomerDetails={selectedCustomerDetails}
+              invoiceNumber={invoiceNumber}
+              date={date}
+              fbrInvoiceNo={fbrInvoiceNo}
+              fbrResponse={fbrResponse}
+              fbrStatus={fbrStatus}
+              items={items}
+              subtotal={subtotal}
+              totalTax={totalTax}
+              discount={discount}
+              netTotal={netTotal}
+              invoiceType={invoiceType}
+              pageNumber={1}
+              totalSalesTaxPages={1}
+              startIndex={0}
+              isLastPage={true}
+            />
           </div>
         </div>
       </div>

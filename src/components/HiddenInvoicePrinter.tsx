@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import FbrLogo from './FbrLogo';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatAmount } from '../utils/format';
+import { paginateSalesTaxItems } from '../utils/invoicePagination';
 
 interface Props {
   invoiceId: string;
@@ -80,12 +81,23 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
   const generatePDF = async () => {
     if (!invoiceRef.current || !data) return;
     try {
-      const dataUrl = await toPng(invoiceRef.current, { cacheBust: true, pixelRatio: 2 });
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(dataUrl);
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pageElements = invoiceRef.current.querySelectorAll<HTMLElement>('.invoice-print-page');
+
+      if (pageElements.length > 0) {
+        for (let i = 0; i < pageElements.length; i++) {
+          if (i > 0) pdf.addPage();
+          const dataUrl = await toPng(pageElements[i], { cacheBust: true, pixelRatio: 2 });
+          pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        }
+      } else {
+        const dataUrl = await toPng(invoiceRef.current, { cacheBust: true, pixelRatio: 2 });
+        const imgProps = pdf.getImageProperties(dataUrl);
+        const h = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, h);
+      }
       pdf.save(`${data.invoice.invoiceNumber || 'invoice'}.pdf`);
     } catch (err) {
       console.error(err);
@@ -106,6 +118,7 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
   if (loading || !data) return <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/50 backdrop-blur-sm"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
 
   const { invoice, customer, company } = data;
+  const salesTaxPages = paginateSalesTaxItems(invoice.items || []);
 
   const displayFbrInvNo = (invoice.fbrInvoiceNo && invoice.fbrInvoiceNo !== 'SUBMITTED')
     ? invoice.fbrInvoiceNo
@@ -134,10 +147,11 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
         ref={invoiceRef} 
         className="print-container flex flex-col z-0 w-[210mm]"
       >
-        {['SALES TAX INVOICE', 'BILL INVOICE'].map((invoiceTitle, index) => (
+        {/* SALES TAX INVOICE pages (paginated in the exact same pattern) */}
+        {salesTaxPages.map((pageData, pIdx) => (
           <div 
-            key={index}
-            className={`invoice-print-page bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden flex flex-col box-border ${index > 0 ? 'break-before-page mt-8 print:mt-0' : ''}`}
+            key={`sales-tax-${pageData.pageNumber}`}
+            className={`invoice-print-page bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden flex flex-col box-border ${pIdx > 0 ? 'break-before-page mt-8 print:mt-0' : ''}`}
           >
             {/* Background Watermark */}
             {!company?.printOnLetterPad && company?.logoUrl && (
@@ -179,7 +193,7 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
             {company?.printOnLetterPad && (
               <div className="pb-2 mb-4 relative z-10" style={{ marginTop: company.headerLength ? `${company.headerLength}mm` : '5rem' }}>
                 <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center">
-                  {invoiceTitle}
+                  SALES TAX INVOICE
                 </div>
               </div>
             )}
@@ -227,115 +241,266 @@ export default function HiddenInvoicePrinter({ invoiceId, action, onClose }: Pro
             </div>
 
             <div className="text-center mb-4 mt-2 relative z-10">
-              <h2 className="text-4xl font-black text-black uppercase tracking-widest leading-none">{invoiceTitle}</h2>
+              <h2 className="text-4xl font-black text-black uppercase tracking-widest leading-none">SALES TAX INVOICE</h2>
+              {pageData.totalSalesTaxPages > 1 && (
+                <span className="text-[13px] font-bold text-gray-700 block mt-1 tracking-wider uppercase">
+                  Page {pageData.pageNumber} of {pageData.totalSalesTaxPages}
+                </span>
+              )}
             </div>
 
             {/* Table */}
-            {invoiceTitle === 'SALES TAX INVOICE' ? (
-              <table className="w-full text-[13px] mb-4 relative z-10">
-                <thead>
-                  <tr className="bg-gray-800 text-white text-left text-[14px]">
-                    <th className="py-2 px-2">Sr.</th>
-                    <th className="py-2 px-2">Description</th>
-                    <th className="py-2 px-2 text-center">Qty</th>
-                    <th className="py-2 px-2 text-right">Unit Price</th>
-                    <th className="py-2 px-2 text-right">Total Excl. Tax</th>
-                    <th className="py-2 px-2 text-center">Tax Rate</th>
-                    <th className="py-2 px-2 text-right">Sales Tax</th>
-                    <th className="py-2 px-2 text-right">Total Incl. Tax</th>
+            <table className="w-full text-[13px] mb-4 relative z-10">
+              <thead>
+                <tr className="bg-gray-800 text-white text-left text-[14px]">
+                  <th className="py-2 px-2">Sr.</th>
+                  <th className="py-2 px-2">Description</th>
+                  <th className="py-2 px-2 text-center">Qty</th>
+                  <th className="py-2 px-2 text-right">Unit Price</th>
+                  <th className="py-2 px-2 text-right">Total Excl. Tax</th>
+                  <th className="py-2 px-2 text-center">Tax Rate</th>
+                  <th className="py-2 px-2 text-right">Sales Tax</th>
+                  <th className="py-2 px-2 text-right">Total Incl. Tax</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageData.items.map((item, idx) => (
+                  <tr key={idx} className="border-b border-gray-800">
+                    <td className="py-2 px-2">{pageData.startIndex + idx + 1}</td>
+                    <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
+                    <td className="py-2 px-2 text-center">{item.qty || 0}</td>
+                    <td className="py-2 px-2 text-right">{formatAmount(item.unitPrice)}</td>
+                    <td className="py-2 px-2 text-right">{formatAmount(item.total)}</td>
+                    <td className="py-2 px-2 text-center">{formatAmount(item.taxPercentage)}%</td>
+                    <td className="py-2 px-2 text-right">{formatAmount(item.tax)}</td>
+                    <td className="py-2 px-2 text-right font-semibold">{formatAmount(item.grandTotal)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {(invoice.items || []).map((item, idx) => (
-                    <tr key={idx} className="border-b border-gray-800">
-                      <td className="py-2 px-2">{idx + 1}</td>
-                      <td className="py-2 px-2 font-medium">{item.productName || '-'}</td>
-                      <td className="py-2 px-2 text-center">{item.qty || 0}</td>
-                      <td className="py-2 px-2 text-right">{formatAmount(item.unitPrice)}</td>
-                      <td className="py-2 px-2 text-right">{formatAmount(item.total)}</td>
-                      <td className="py-2 px-2 text-center">{formatAmount(item.taxPercentage)}%</td>
-                      <td className="py-2 px-2 text-right">{formatAmount(item.tax)}</td>
-                      <td className="py-2 px-2 text-right font-semibold">{formatAmount(item.grandTotal)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <table className="w-full text-[13px] mb-4 relative z-10 border-collapse border border-gray-800">
-                <thead>
-                  <tr className="bg-gray-800 text-white text-center text-[15px]">
-                    <th className="py-3 px-2 border border-gray-800">Description</th>
-                    <th className="py-3 px-2 border border-gray-800 w-[20%]">Value Excluding Sales Tax</th>
-                    <th className="py-3 px-2 border border-gray-800 w-[20%]">Sales Tax Payment</th>
-                    <th className="py-3 px-2 border border-gray-800 w-[20%]">Value Including Sales tax</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">GST against Bill No {invoice.invoiceNumber}</td>
-                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.subtotal)}</td>
-                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.taxAmount)}</td>
-                    <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.subtotal + invoice.taxAmount)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            )}
+                ))}
+              </tbody>
+            </table>
 
             {/* Totals & Footer Info */}
             <div className="flex justify-between items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
-              {/* Left side: FBR Logo & QR Code */}
+              {/* Left side: continuation notice if not last page */}
               <div className="flex flex-col items-start justify-center pl-1 pt-1">
-                {invoiceTitle === 'BILL INVOICE' && (
-                  <div className="flex items-center gap-3">
-                    <FbrLogo className="w-32 h-32 object-contain" />
-                    {showQrCode && (
-                      <div className="flex flex-col items-center pl-1">
-                        <QRCodeSVG value={qrValue} size={105} level="M" />
-                        {(displayFbrInvNo || invoice.fbrInvoiceNo) && (
-                          <span className="text-[9px] font-mono font-bold text-gray-800 mt-1 max-w-[120px] break-all text-center leading-tight">
-                            {displayFbrInvNo || invoice.fbrInvoiceNo}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                {!pageData.isLastPage && (
+                  <div className="text-[13px] font-bold text-gray-600 italic py-2">
+                    (Continued on Page {pageData.pageNumber + 1}...)
                   </div>
                 )}
               </div>
 
-              {/* Right side: Totals Box */}
-              <div className="w-[60%]">
-                <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
-                  <div className="flex justify-between py-1.5 items-center">
-                    <span className="font-bold text-gray-700 text-[18px]">Total Excl. Sales Tax:</span>
-                    <span className="font-bold text-[20px]">{formatAmount(invoice.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-gray-300 items-center">
-                    <span className="font-bold text-gray-700 text-[18px]">Total Sales Tax:</span>
-                    <span className="font-bold text-[20px]">{formatAmount(invoice.taxAmount)}</span>
-                  </div>
-                  {invoice.discount > 0 && (
-                    <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600 items-center">
-                      <span className="font-bold text-[18px]">Discount:</span>
-                      <span className="font-bold text-[20px]">-{formatAmount(invoice.discount)}</span>
+              {/* Right side: Totals Box only on last sales tax page */}
+              {pageData.isLastPage ? (
+                <div className="w-[60%]">
+                  <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
+                    <div className="flex justify-between py-1.5 items-center">
+                      <span className="font-bold text-gray-700 text-[18px]">Total Excl. Sales Tax:</span>
+                      <span className="font-bold text-[20px]">{formatAmount(invoice.subtotal)}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between py-3 text-[18px] font-black text-gray-900 items-center">
-                    <span>Total Value Incl. Tax:</span>
-                    <span>PKR {formatAmount(invoice.netTotal)}</span>
+                    <div className="flex justify-between py-1.5 border-b border-gray-300 items-center">
+                      <span className="font-bold text-gray-700 text-[18px]">Total Sales Tax:</span>
+                      <span className="font-bold text-[20px]">{formatAmount(invoice.taxAmount)}</span>
+                    </div>
+                    {invoice.discount > 0 && (
+                      <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600 items-center">
+                        <span className="font-bold text-[18px]">Discount:</span>
+                        <span className="font-bold text-[20px]">-{formatAmount(invoice.discount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between py-3 text-[18px] font-black text-gray-900 items-center">
+                      <span>Total Value Incl. Tax:</span>
+                      <span>PKR {formatAmount(invoice.netTotal)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
+                    <div className="inline-block text-center">
+                      <div className="w-full border-b border-gray-800 mb-1"></div>
+                      <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider block">Authorized Signatory</span>
+                      <span className="text-[10px] text-gray-600 font-semibold block mt-1">Software Developed By : 0332-5059526</span>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
-                  <div className="inline-block text-center">
-                    <div className="w-full border-b border-gray-800 mb-1"></div>
-                    <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider block">Authorized Signatory</span>
-                    <span className="text-[10px] text-gray-600 font-semibold block mt-1">Software Developed By : 0332-5059526</span>
+              ) : (
+                <div className="inline-block text-center self-end">
+                  <div className="w-48 border-b border-gray-800 mb-1"></div>
+                  <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider block">Authorized Signatory</span>
+                  <span className="text-[10px] text-gray-600 font-semibold block mt-1">Software Developed By : 0332-5059526</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {/* BILL INVOICE (always rendered as dedicated page, never used for adding items) */}
+        <div 
+          key="bill-invoice"
+          className="invoice-print-page bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] p-8 font-sans relative overflow-hidden flex flex-col box-border break-before-page mt-8 print:mt-0"
+        >
+          {/* Background Watermark */}
+          {!company?.printOnLetterPad && company?.logoUrl && (
+            <div className="absolute inset-0 flex items-center justify-center z-0 opacity-10 pointer-events-none">
+              <img src={company.logoUrl} crossOrigin="anonymous" alt="Watermark" className="w-[150mm] h-[150mm] object-contain grayscale" />
+            </div>
+          )}
+
+          {/* Header */}
+          {!company?.printOnLetterPad && (
+            <div className="border-b-2 border-gray-900 pb-2 mb-2 relative z-10">
+              <div className="flex flex-row items-stretch justify-center relative mb-1">
+                <div className="absolute left-0 top-0 bottom-0 flex justify-start -mt-2">
+                  {company?.logoUrl && (
+                    <img src={company.logoUrl} crossOrigin="anonymous" alt="Company Logo" className="h-full max-h-[96px] w-auto object-contain" />
+                  )}
+                </div>
+                <div className="flex flex-col items-center justify-between text-center min-h-[72px] pl-12">
+                  <h1 className="font-serif text-[52px] whitespace-nowrap font-black text-gray-900 uppercase tracking-tighter leading-none underline decoration-4 underline-offset-8 mb-3">
+                    {company?.name || 'Company Name'}
+                  </h1>
+                  <div className="text-[22px] whitespace-nowrap font-bold text-gray-800 uppercase tracking-widest leading-none">
+                    GENERAL ORDER SUPPLIER
                   </div>
+                </div>
+              </div>
+              <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center pl-12">
+                NTN: {company?.ntn} | STRN: {company?.strn}
+              </div>
+              <div className="text-[14px] text-gray-800 font-medium leading-snug text-left mt-1">
+                {company?.address && <><span className="font-bold">Address:</span> {company.address} <br/></>}
+                <span className="font-bold">Phone:</span> {company?.phone}{company?.phone2 ? `, ${company.phone2}` : ''} <br/>
+                {company?.email && <><span className="font-bold">Email:</span> {company.email}</>}
+              </div>
+            </div>
+          )}
+          
+          {/* Title if Letter Pad */}
+          {company?.printOnLetterPad && (
+            <div className="pb-2 mb-4 relative z-10" style={{ marginTop: company.headerLength ? `${company.headerLength}mm` : '5rem' }}>
+              <div className="w-full bg-black text-white py-1.5 text-[16px] font-bold uppercase tracking-widest leading-none text-center">
+                BILL INVOICE
+              </div>
+            </div>
+          )}
+
+          {/* Customer Info & Invoice Details */}
+          <div className="flex justify-between items-start mb-1 relative z-10">
+            <div>
+              {customer ? (
+                <div className="text-[16px] leading-tight">
+                  {(() => {
+                    const code = customer.emisCode || customer.institutionCode || customer.healthUnitCode;
+                    return (
+                      <p className="font-bold text-gray-900 mb-0.5">
+                        {code ? `${code}, ` : ''}{customer.name}
+                      </p>
+                    );
+                  })()}
+                  {(!customer.customerType || customer.customerType === 'other') && customer.ntn && (
+                    <p><span className="font-semibold">NTN:</span> {customer.ntn}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-400 italic text-[11px]">Customer details unavailable.</p>
+              )}
+            </div>
+            <div className="flex flex-col items-end">
+              <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 items-center text-left min-w-[200px]">
+                <span className="font-semibold text-gray-600">Invoice No:</span>
+                <span className="text-[16px] font-bold text-gray-900 leading-none text-right">{invoice.invoiceNumber}</span>
+                
+                <span className="font-semibold text-gray-600">Date:</span>
+                <span className="text-[14px] font-bold text-gray-900 leading-none text-right tracking-wider">___________________</span>
+
+                {displayFbrInvNo && (
+                  <>
+                    <span className="font-semibold text-gray-600">FBR Inv No:</span>
+                    <span className="text-[14px] font-bold text-gray-900 leading-none text-right">{displayFbrInvNo}</span>
+                  </>
+                )}
+              </div>
+              <div className="mt-2 inline-block">
+                {invoice.invoiceNumber && <Barcode value={invoice.invoiceNumber} width={1} height={25} displayValue={false} margin={0} renderer="canvas" />}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mb-4 mt-2 relative z-10">
+            <h2 className="text-4xl font-black text-black uppercase tracking-widest leading-none">BILL INVOICE</h2>
+          </div>
+
+          {/* Table for Bill Invoice */}
+          <table className="w-full text-[13px] mb-4 relative z-10 border-collapse border border-gray-800">
+            <thead>
+              <tr className="bg-gray-800 text-white text-center text-[15px]">
+                <th className="py-3 px-2 border border-gray-800">Description</th>
+                <th className="py-3 px-2 border border-gray-800 w-[20%]">Value Excluding Sales Tax</th>
+                <th className="py-3 px-2 border border-gray-800 w-[20%]">Sales Tax Payment</th>
+                <th className="py-3 px-2 border border-gray-800 w-[20%]">Value Including Sales tax</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">GST against Bill No {invoice.invoiceNumber}</td>
+                <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.subtotal)}</td>
+                <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.taxAmount)}</td>
+                <td className="py-6 px-4 font-bold text-[18px] text-center border border-gray-800">{formatAmount(invoice.subtotal + invoice.taxAmount)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Totals & Footer Info */}
+          <div className="flex justify-between items-start mt-auto pt-4 border-t border-gray-200 relative z-10">
+            {/* Left side: FBR Logo & QR Code */}
+            <div className="flex flex-col items-start justify-center pl-1 pt-1">
+              <div className="flex items-center gap-3">
+                <FbrLogo className="w-32 h-32 object-contain" />
+                {showQrCode && (
+                  <div className="flex flex-col items-center pl-1">
+                    <QRCodeSVG value={qrValue} size={105} level="M" />
+                    {(displayFbrInvNo || invoice.fbrInvoiceNo) && (
+                      <span className="text-[9px] font-mono font-bold text-gray-800 mt-1 max-w-[120px] break-all text-center leading-tight">
+                        {displayFbrInvNo || invoice.fbrInvoiceNo}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right side: Totals Box */}
+            <div className="w-[60%]">
+              <div className="bg-gray-50 p-3 rounded border border-gray-300 text-[14px]">
+                <div className="flex justify-between py-1.5 items-center">
+                  <span className="font-bold text-gray-700 text-[18px]">Total Excl. Sales Tax:</span>
+                  <span className="font-bold text-[20px]">{formatAmount(invoice.subtotal)}</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-gray-300 items-center">
+                  <span className="font-bold text-gray-700 text-[18px]">Total Sales Tax:</span>
+                  <span className="font-bold text-[20px]">{formatAmount(invoice.taxAmount)}</span>
+                </div>
+                {invoice.discount > 0 && (
+                  <div className="flex justify-between py-1.5 border-b border-gray-300 text-red-600 items-center">
+                    <span className="font-bold text-[18px]">Discount:</span>
+                    <span className="font-bold text-[20px]">-{formatAmount(invoice.discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between py-3 text-[18px] font-black text-gray-900 items-center">
+                  <span>Total Value Incl. Tax:</span>
+                  <span>PKR {formatAmount(invoice.netTotal)}</span>
+                </div>
+              </div>
+              
+              <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end items-end">
+                <div className="inline-block text-center">
+                  <div className="w-full border-b border-gray-800 mb-1"></div>
+                  <span className="text-[12px] text-gray-700 font-bold uppercase tracking-wider block">Authorized Signatory</span>
+                  <span className="text-[10px] text-gray-600 font-semibold block mt-1">Software Developed By : 0332-5059526</span>
                 </div>
               </div>
             </div>
           </div>
-        ))}
+        </div>
       </div>
     </div>
     </>
