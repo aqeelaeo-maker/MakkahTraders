@@ -5,6 +5,22 @@ import { db, auth } from '../firebase';
 import { Invoice, Product, Customer } from '../types';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import * as XLSX from 'xlsx';
+import { FileSpreadsheet, Download, Calendar } from 'lucide-react';
+
+const MONTH_NAMES = [
+  { value: 0, label: 'January' },
+  { value: 1, label: 'February' },
+  { value: 2, label: 'March' },
+  { value: 3, label: 'April' },
+  { value: 4, label: 'May' },
+  { value: 5, label: 'June' },
+  { value: 6, label: 'July' },
+  { value: 7, label: 'August' },
+  { value: 8, label: 'September' },
+  { value: 9, label: 'October' },
+  { value: 10, label: 'November' },
+  { value: 11, label: 'December' },
+];
 
 export default function Dashboard() {
   const { activeSubUser, companyProfile } = useOutletContext<any>() || {};
@@ -20,6 +36,8 @@ export default function Dashboard() {
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [reportRange, setReportRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -169,6 +187,98 @@ export default function Dashboard() {
     }).format(val);
   };
 
+  const availableYears = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = new Set<number>([currentYear, currentYear - 1, currentYear + 1]);
+    allInvoices.forEach(inv => {
+      if (inv.date) {
+        const y = new Date(inv.date).getFullYear();
+        if (!isNaN(y) && y > 2000 && y < 2100) {
+          years.add(y);
+        }
+      }
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [allInvoices]);
+
+  const monthInvoices = useMemo(() => {
+    const start = new Date(selectedYear, selectedMonth, 1, 0, 0, 0, 0);
+    const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
+    return allInvoices.filter(invoice => 
+      isWithinInterval(new Date(invoice.date), { start, end })
+    );
+  }, [allInvoices, selectedMonth, selectedYear]);
+
+  const exportInvoicesToExcel = (invoices: Invoice[], fileName: string, periodTitle: string) => {
+    if (invoices.length === 0) {
+      alert(`No invoices found for ${periodTitle}.`);
+      return;
+    }
+
+    const maxItems = Math.max(
+      1,
+      ...invoices.map(inv => (inv.items && inv.items.length > 0 ? inv.items.length : 1))
+    );
+
+    const excelData = invoices.map(inv => {
+      const cust = customersMap.get(inv.customerId) || (inv.customerName ? customersMap.get(inv.customerName.toLowerCase().trim()) : undefined);
+      const row: Record<string, any> = {
+        'Invoice No': inv.invoiceNumber,
+        'Date': format(new Date(inv.date), 'dd MMM yyyy'),
+        'Customer Name': inv.customerName,
+        'Customer NTN/CNIC': cust?.ntn || inv.customerNtn || '-',
+      };
+
+      for (let i = 0; i < maxItems; i++) {
+        const item = inv.items && inv.items[i];
+        const num = i + 1;
+        if (item) {
+          const prod = productsMap.get(item.productId) || (item.productName ? productsMap.get(item.productName.toLowerCase().trim()) : undefined);
+          row[`Product ${num}`] = item.productName || prod?.name || '-';
+          row[`HS Code ${num}`] = prod?.hsCode || (item as any).hsCode || '-';
+          row[`Uom ${num}`] = prod?.unit || (item as any).unit || 'pcs';
+          row[`Qty ${num}`] = item.qty || 0;
+          row[`Rate ${num}`] = item.unitPrice || 0;
+          row[`Tax Rate ${num} %`] = item.taxPercentage || 0;
+          row[`Tax Amount ${num}`] = item.tax || 0;
+          row[`Total ${num}`] = item.total || 0;
+        } else {
+          row[`Product ${num}`] = '';
+          row[`HS Code ${num}`] = '';
+          row[`Uom ${num}`] = '';
+          row[`Qty ${num}`] = '';
+          row[`Rate ${num}`] = '';
+          row[`Tax Rate ${num} %`] = '';
+          row[`Tax Amount ${num}`] = '';
+          row[`Total ${num}`] = '';
+        }
+      }
+
+      row['Amount (Excl. Tax)'] = inv.subtotal - (inv.discount || 0);
+      row['Tax Amount'] = inv.taxAmount || 0;
+      row['Total Amount'] = inv.netTotal || 0;
+      row['Status'] = inv.status;
+      row['FBR Status'] = inv.fbrStatus || 'Not Submitted';
+      row['FBR Invoice No'] = inv.fbrInvoiceNo || '-';
+
+      return row;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const colKeys = Object.keys(excelData[0] || {});
+    ws['!cols'] = colKeys.map(key => {
+      const maxLen = Math.max(
+        key.length,
+        ...excelData.map(r => String((r as any)[key] ?? '').length)
+      );
+      return { wch: Math.min(Math.max(maxLen + 3, 12), 50) };
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sales Report');
+    XLSX.writeFile(wb, fileName);
+  };
+
   const handleExportExcel = () => {
     const now = new Date();
     let start: Date;
@@ -197,61 +307,21 @@ export default function Dashboard() {
       isWithinInterval(new Date(invoice.date), { start, end })
     );
 
-    if (filteredInvoices.length === 0) {
-      alert(`No invoices found for the selected ${reportRange} period.`);
-      return;
-    }
-
-    const maxItems = Math.max(
-      1,
-      ...filteredInvoices.map(inv => (inv.items && inv.items.length > 0 ? inv.items.length : 1))
+    exportInvoicesToExcel(
+      filteredInvoices,
+      `${reportRange}_report_${format(new Date(), 'yyyyMMdd')}.xlsx`,
+      `the selected ${reportRange} period`
     );
+  };
 
-    const excelData = filteredInvoices.map(inv => {
-      const row: Record<string, any> = {
-        'Invoice No': inv.invoiceNumber,
-        'Date': format(new Date(inv.date), 'dd MMM yyyy'),
-        'Customer Name': inv.customerName,
-      };
-
-      for (let i = 0; i < maxItems; i++) {
-        const item = inv.items && inv.items[i];
-        const num = i + 1;
-        if (item) {
-          const prod = productsMap.get(item.productId) || (item.productName ? productsMap.get(item.productName.toLowerCase().trim()) : undefined);
-          row[`Product ${num}`] = item.productName || prod?.name || '-';
-          row[`HS Code ${num}`] = prod?.hsCode || (item as any).hsCode || '-';
-          row[`Uom ${num}`] = prod?.unit || (item as any).unit || 'pcs';
-        } else {
-          row[`Product ${num}`] = '';
-          row[`HS Code ${num}`] = '';
-          row[`Uom ${num}`] = '';
-        }
-      }
-
-      row['Amount (Excl. Tax)'] = inv.subtotal - (inv.discount || 0);
-      row['Tax Amount'] = inv.taxAmount || 0;
-      row['Total Amount'] = inv.netTotal || 0;
-      row['Status'] = inv.status;
-      row['FBR Status'] = inv.fbrStatus || 'Not Submitted';
-      row['FBR Invoice No'] = inv.fbrInvoiceNo || '-';
-
-      return row;
-    });
-
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const colKeys = Object.keys(excelData[0] || {});
-    ws['!cols'] = colKeys.map(key => {
-      const maxLen = Math.max(
-        key.length,
-        ...excelData.map(r => String((r as any)[key] ?? '').length)
-      );
-      return { wch: Math.min(Math.max(maxLen + 3, 12), 50) };
-    });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Report');
-    XLSX.writeFile(wb, `${reportRange}_report_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+  const handleDownloadMonthReport = () => {
+    const monthName = MONTH_NAMES[selectedMonth]?.label || 'Month';
+    const periodLabel = `${monthName} ${selectedYear}`;
+    exportInvoicesToExcel(
+      monthInvoices,
+      `${monthName}_${selectedYear}_Sales_Report.xlsx`,
+      periodLabel
+    );
   };
 
   if (loading) {
@@ -264,32 +334,110 @@ export default function Dashboard() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex space-x-2">
+      {/* Top Controls & Navigation */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
+        {/* Quick Range Selector */}
+        <div className="flex items-center space-x-2">
           {['daily', 'weekly', 'monthly', 'yearly'].map((range) => (
             <button
               key={range}
               onClick={() => setReportRange(range as any)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition-colors ${
+              className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all cursor-pointer ${
                 reportRange === range 
-                  ? 'bg-slate-800 text-white' 
+                  ? 'bg-slate-900 text-white shadow-sm' 
                   : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
               {range}
             </button>
           ))}
-        </div>
-        <div className="flex gap-4">
-          <button onClick={handleExportExcel} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-colors">
-            Download Excel
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            title={`Download Excel for active ${reportRange} range`}
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="capitalize">{reportRange} Excel</span>
           </button>
-          <Link to="/products" className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 bg-white transition-colors">
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3">
+          <Link to="/products" className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 bg-white transition-colors">
             Manage Products
           </Link>
-          <Link to="/invoices/new" className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors">
+          <Link to="/invoices/new" className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-colors">
             + Create Sales Tax Invoice
           </Link>
+        </div>
+      </div>
+
+      {/* Monthly Report of the Year Section */}
+      <div className="bg-gradient-to-r from-emerald-50 via-teal-50/40 to-white border border-emerald-200/80 rounded-2xl p-4 mb-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm shrink-0">
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              Monthly Tax & Sales Report
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">
+                Excel .xlsx
+              </span>
+            </h4>
+            <p className="text-xs text-slate-600">
+              Select month from the dropdown to download complete invoice ledger and tax breakdown
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {/* Month Selector Dropdown */}
+          <div className="flex items-center gap-2 bg-white border border-slate-300 rounded-xl px-3 py-2 shadow-xs focus-within:ring-2 focus-within:ring-emerald-500">
+            <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-xs font-semibold text-slate-500">Month:</span>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              aria-label="Select Month"
+              className="bg-transparent text-sm font-bold text-slate-800 outline-none cursor-pointer pr-1"
+            >
+              {MONTH_NAMES.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Year Selector Dropdown */}
+          <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-3 py-2 shadow-xs focus-within:ring-2 focus-within:ring-emerald-500">
+            <span className="text-xs font-semibold text-slate-500">Year:</span>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              aria-label="Select Year"
+              className="bg-transparent text-sm font-bold text-slate-800 outline-none cursor-pointer pr-1"
+            >
+              {availableYears.map((yr) => (
+                <option key={yr} value={yr}>
+                  {yr}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Download Monthly Report Button */}
+          <button
+            onClick={handleDownloadMonthReport}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-md shadow-emerald-200 transition-all cursor-pointer active:scale-95"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download {MONTH_NAMES[selectedMonth].label} Report</span>
+            <span className="text-xs bg-emerald-800/80 px-2 py-0.5 rounded-full font-mono">
+              {monthInvoices.length}
+            </span>
+          </button>
         </div>
       </div>
 

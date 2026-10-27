@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, getDocs, orderBy, doc, setDoc, where, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Product } from '../types';
-import { Plus, Search, Edit2, Trash2, Tag, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Tag, X, FileSpreadsheet, Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import ImportProductsModal, { exportProductsToExcel } from '../components/ImportProductsModal';
 
 const SCENARIO_CODES = Array.from({ length: 28 }, (_, i) => `SN${String(i + 1).padStart(3, '0')}`);
 
@@ -13,8 +14,17 @@ export default function Products() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => {
+      setNotification(null);
+    }, 6000);
+  };
 
   // Form state
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -177,15 +187,69 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Products</h1>
-        <button 
-          onClick={handleOpenModal}
-          className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors"
+      {/* Notification Banner */}
+      {notification && (
+        <div
+          className={`p-4 rounded-xl flex items-center justify-between border shadow-sm transition-all ${
+            notification.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-red-50 border-red-200 text-red-900'
+          }`}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Product
-        </button>
+          <div className="flex items-center space-x-2.5 text-sm font-semibold">
+            {notification.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            )}
+            <span>{notification.message}</span>
+          </div>
+          <button
+            onClick={() => setNotification(null)}
+            className="text-slate-400 hover:text-slate-600 p-1"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Products</h1>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Manage your inventory items, pricing, tax rates, and FBR scenario codes
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => exportProductsToExcel(filteredProducts.length > 0 ? filteredProducts : products)}
+            disabled={products.length === 0}
+            className="flex items-center px-3.5 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-sm font-semibold shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+            title="Export products to Excel"
+          >
+            <Download className="w-4 h-4 mr-2 text-slate-500" />
+            Export Excel
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold shadow-md shadow-emerald-200 hover:bg-emerald-700 transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Import from Excel
+          </button>
+
+          <button 
+            type="button"
+            onClick={handleOpenModal}
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Product
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
@@ -470,6 +534,20 @@ export default function Products() {
           </div>
         </div>
       )}
+
+      {/* Import Products from Excel Modal */}
+      <ImportProductsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        existingProducts={products}
+        onImportSuccess={(newCount, updatedCount) => {
+          fetchProducts();
+          const parts: string[] = [];
+          if (newCount > 0) parts.push(`${newCount} new ${newCount === 1 ? 'product' : 'products'} added`);
+          if (updatedCount > 0) parts.push(`${updatedCount} existing ${updatedCount === 1 ? 'product' : 'products'} updated`);
+          showNotification(`Import successful! ${parts.join(', ')}.`);
+        }}
+      />
     </div>
   );
 }
