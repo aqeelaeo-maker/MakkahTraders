@@ -44,6 +44,48 @@ function parseString(val: any, fallback = ''): string {
   return String(val).trim();
 }
 
+// Complete value as text for HS Code (preserves leading zeros, dots, formats, and avoids exponential truncation)
+function parseHsCode(formattedVal: any, rawVal?: any): string {
+  let str = '';
+  // 1. Prefer formattedVal (from cell.w via raw: false) which captures the cell's complete visible text in Excel
+  if (formattedVal !== null && formattedVal !== undefined) {
+    str = String(formattedVal).trim();
+  }
+  // 2. Fallback to rawVal if formattedVal was empty
+  if (!str && rawVal !== null && rawVal !== undefined) {
+    str = String(rawVal).trim();
+  }
+  if (!str) return '';
+
+  // Remove any wrapping quotes or leading apostrophe used in Excel to force text format ('0101.2900)
+  str = str.replace(/^['"]|['"]$/g, '').trim();
+
+  // Handle scientific exponential notation if Excel produced e.g. "1.0129E+07" or "8.4713E+07"
+  if (/[eE][+-]?[0-9]+/.test(str) && typeof rawVal === 'number' && !isNaN(rawVal)) {
+    try {
+      str = rawVal.toLocaleString('fullwide', { useGrouping: false });
+    } catch {
+      str = rawVal.toFixed(0);
+    }
+  }
+
+  // If 7 digits without dot (e.g. "1012900"), Excel likely dropped the leading 0 from an 8-digit PCT code ("01012900")
+  if (/^\d{7}$/.test(str)) {
+    str = '0' + str;
+  }
+  // If 3 digits before dot (e.g. "101.2900" or "401.1000"), Excel dropped leading zero from 4-digit heading ("0101.2900" or "0401.1000")
+  else if (/^\d{3}\.\d+$/.test(str)) {
+    str = '0' + str;
+  }
+  // If Excel stripped trailing zeros from a 4.4 PCT code (e.g. "0101.29" -> "0101.2900", or "6203.42" -> "6203.4200")
+  if (/^\d{4}\.\d{1,3}$/.test(str)) {
+    const [heading, sub] = str.split('.');
+    str = `${heading}.${sub.padEnd(4, '0')}`;
+  }
+
+  return str;
+}
+
 function parseNumber(val: any, fallback = 0): number {
   if (val === null || val === undefined || val === '') return fallback;
   if (typeof val === 'number') return isNaN(val) ? fallback : val;
